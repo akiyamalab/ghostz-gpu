@@ -27,7 +27,6 @@ Mode    := Release
 # Profile mode                           #
 #----------------------------------------------#
 
-
 PROFILE    := Yes
 #-----------------------------------------------------------------------------------------#
 
@@ -42,13 +41,14 @@ CXXFLAGS=
 NVCCFLAGS= 
 
 LDLIBS = -L$(BOOST_PATH)/lib
-LDFLAGS =  -lm -lboost_thread --cudart static
+LDFLAGS =  -lm -lboost_thread --cudart static 
 
 EXECUTABLE = 
 ifeq ($(USE_GPU),Yes)
 	CFLAGS   += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
 	CXXFLAGS += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
-	NVCCFLAGS  += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
+	NVCCFLAGS  += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE)
+	LDFLAGS += -gencode arch=$(GPU_ARCH),code=$(GPU_CODE)
 	EXECUTABLE = ghostz_gpu
 else
 	EXECUTABLE = ghostz
@@ -150,7 +150,7 @@ OBJS += $(CU_SRC:%.cu=%.o)
 all:ghostz
 
 ghostz: $(OBJS)
-	$(NVCC) -o $(EXECUTABLE) $(OBJS) $(LDFLAGS) $(LDLIBS)
+	$(NVCC) $(LDLIBS) $(LDFLAGS) -o $(EXECUTABLE) $(OBJS)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@  $(INCLUDES)
