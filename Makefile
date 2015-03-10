@@ -35,7 +35,7 @@ NVCC=$(CUDA_Toolkit_PATH)/bin/nvcc
 CC=$(NVCC)
 CXX=$(NVCC)
 
-INCLUDES  += -I$(BOOST_PATH)/include -I../ext/cub-1.3.2
+INCLUDES  += -I$(BOOST_PATH)/include -I./ext/cub-1.3.2
 
 CFLAGS= 
 CXXFLAGS= 
