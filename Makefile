@@ -41,7 +41,7 @@ CXXFLAGS=
 NVCCFLAGS= 
 
 LDLIBS = -L$(BOOST_PATH)/lib
-LDFLAGS =  -lm -lboost_thread --cudart static 
+LDFLAGS =  -lm -lboost_thread -lboost_system --cudart static 
 
 EXECUTABLE = 
 ifeq ($(USE_GPU),Yes)
