@@ -80,10 +80,9 @@ void AlignerGpu::Presearch(Queries &queries, DatabaseType &database,
 	cudaGetDeviceCount(&device_count);
 	cout << device_count << " GPUs are available." << endl;
 	vector<int> gpu_ids;
-	gpu_ids.push_back(0);
-	gpu_ids.push_back(1);
-	gpu_ids.push_back(2);
-
+	for (int device_i = 0; device_i < device_count; ++device_i) {
+		gpu_ids.push_back(device_i);
+	}
 	bool database_preload = true;
 	Statistics statistics(*(parameters.aligning_sequence_type_ptr));
 	Statistics::KarlinParameters gapped_karlin_parameters;
