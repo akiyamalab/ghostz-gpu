@@ -40,6 +40,7 @@ public:
 		bool filter;
 		int gap_open;
 		int gap_extension;
+		int number_gpus;
 		float normalized_presearched_ungapped_extension_cutoff;
 		float normalized_presearched_gapped_extension_trigger;
 		float normalized_presearched_gapped_extension_cutoff;

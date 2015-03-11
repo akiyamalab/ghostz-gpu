@@ -40,7 +40,6 @@ private:
 	typedef AlignerCommon::AlignmentPosition AlignmentPosition;
 	typedef AlignerCommon::Coordinate Coordinate;
 
-	//static const uint32_t kMaxSeedBufferSize = 1 << 7;
 	static const uint32_t kMaxSeedBufferSizePerGPU = 1 << 22;
 
 	void Presearch(Queries &queries, DatabaseType &database,

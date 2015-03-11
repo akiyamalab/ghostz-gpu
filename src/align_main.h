@@ -21,7 +21,7 @@ public:
 private:
 	bool BuildParameters(int argc, char* argv[], std::string &input_filename,
 			std::string &database_filename, std::string &output_filename,
-			AlignerGpu::AligningParameters &parameters);
+			AlignerCommon::AligningCommonParameters &parameters);
 };
 
 #endif /* ALIGN_MAIN_H_ */
