@@ -76,11 +76,18 @@ void AlignerGpu::Align(string &queries_filename, string &database_filename,
 void AlignerGpu::Presearch(Queries &queries, DatabaseType &database,
 		AligningParameters &parameters,
 		std::vector<std::vector<PresearchedResult> > &results_list) {
+	Logger *logger = Logger::GetInstance();
 	int device_count = 0;
 	cudaGetDeviceCount(&device_count);
+
 	cout << device_count << " GPUs are available." << endl;
+	cout << "use " << parameters.number_gpus << " GPUs." << endl;
+
+	if (parameters.number_gpus == -1 || parameters.number_gpus > device_count) {
+		parameters.number_gpus = device_count;
+	}
 	vector<int> gpu_ids;
-	for (int device_i = 0; device_i < device_count; ++device_i) {
+	for (int device_i = 0; device_i < parameters.number_gpus; ++device_i) {
 		gpu_ids.push_back(device_i);
 	}
 	bool database_preload = true;
