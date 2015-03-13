@@ -5,14 +5,13 @@
 #----------------------------------------------#
 # Library PATH				             #
 #----------------------------------------------#
-CUDA_Toolkit_PATH ?= /opt/cuda6.0/
+CUDA_TOOLKIT_PATH ?= /opt/cuda6.0/
 BOOST_PATH ?= /usr/local/
 
 #----------------------------------------------#
 # GPU environment settings               #
 #----------------------------------------------#
 
-USE_GPU    := Yes
 GPU_ARCH=compute_35
 GPU_CODE=sm_35
 
@@ -20,8 +19,8 @@ GPU_CODE=sm_35
 # Mode               		          #
 #----------------------------------------------#
 
-Mode    := Release
- # (If you do not use Debug mode, please set the value as Debug)
+MODE    := Release
+ # (If you use Debug mode, please set the value as Debug)
 
 #----------------------------------------------#
 # Profile mode                           #
@@ -29,6 +28,9 @@ Mode    := Release
 
 PROFILE    := Yes
 #-----------------------------------------------------------------------------------------#
+
+
+USE_GPU    := Yes
 
 NVCC=$(CUDA_Toolkit_PATH)/bin/nvcc
 CC=$(NVCC)
@@ -54,7 +56,7 @@ else
 	EXECUTABLE = ghostz
 endif
 
-ifeq ($(Mode),Release)
+ifeq ($(MODE),Release)
 	CFLAGS += -O3
 	CXXFLAGS   += -O3
 	NVCCFLAGS  += -O3
@@ -63,7 +65,7 @@ ifeq ($(PROFILE),Yes)
 	CXXFLAGS   += -g
 	NVCCFLAGS  += -g
 endif
-else ifeq ($(Debug),Yes)
+else ifeq ($(MODE),Debug)
 	CFLAGS += -g -O0
 	CXXFLAGS   += -g -O0
 	NVCCFLAGS  += -g -G -O0

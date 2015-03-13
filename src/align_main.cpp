@@ -60,7 +60,6 @@ int AlignMain::Run(int argc, char* argv[]) {
 					parameters);
 		}
 #endif
-
 		logger->Log("finished");
 		return 0;
 	}

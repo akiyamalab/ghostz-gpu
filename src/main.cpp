@@ -11,14 +11,15 @@ void PrintUsage() {
 	Logger *logger = Logger::GetInstance();
 	logger->Log(
 			string(
-					"GHOSTZ - homology search tool. version "
-							+ common::kVersion));
+					"GHOSTZ-GPU - homology search tool. version "
+							+ common::kVersion)
+							);
 	logger->Log(
 			"\n"
 					"Command and Options\n"
 					"db: convert a FASTA file to GHOSTX format database files\n"
 					"\n"
-					"  ghostz db [-i dbFastaFile] [-o dbName] [-C clustering][-l chunkSize]\n"
+					"  ghostz_gpu db [-i dbFastaFile] [-o dbName] [-C clustering][-l chunkSize]\n"
 					"            [-L clusteringSubsequenceLength]  [-s seedThreshold]\n"
 					"\n"
 					"  Options:\n"
@@ -35,9 +36,9 @@ void PrintUsage() {
 					"\n"
 					"aln:  Search homologues of queries from database\n"
 					"\n"
-					"  ghostz aln [-i queries] [-o output] [-d database] [-v maxNumAliSub]\n"
+					"  ghostz_gpu aln [-i queries] [-o output] [-d database] [-v maxNumAliSub]\n"
 					"             [-b maxNumAliQue] [-h hitsSize] [-l queriesChunkSize] [-q queryType]\n"
-					"             [-t databaseType] [-F filter] [-a numThreads]\n"
+					"             [-t databaseType] [-F filter] [-a numThreads] [-g numGPUs]\n"
 					"\n"
 					"  Options:\n"
 					"  (Required)\n"
@@ -53,7 +54,8 @@ void PrintUsage() {
 					"    -q STR    Query sequence type, p (protein) or d (dna) [p]\n"
 					"    -t STR    Database sequence type, p (protein) or d (dna) [p]\n"
 					"    -F STR    Filter query sequence, T (enable) or F (disable) [T] \n"
-					"    -a INT    The number of threads [1]\n");
+					"    -a INT    The number of threads [1]\n"
+					"    -g INT    The number of GPUs [the number of available GPUs]");
 }
 
 int main(int argc, char* argv[]) {
