@@ -51,7 +51,7 @@ ifeq ($(USE_GPU),Yes)
 	CXXFLAGS += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
 	NVCCFLAGS  += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE)
 	LDFLAGS += -gencode arch=$(GPU_ARCH),code=$(GPU_CODE)
-	EXECUTABLE = ghostz_gpu
+	EXECUTABLE = ghostz-gpu
 else
 	EXECUTABLE = ghostz
 endif
@@ -165,4 +165,4 @@ ghostz: $(OBJS)
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS) ghostz ghostz_gpu
+	rm -f $(OBJS) ghostz ghostz-gpu
