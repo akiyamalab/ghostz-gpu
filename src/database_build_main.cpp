@@ -33,7 +33,7 @@ DatabaseBuildMain::~DatabaseBuildMain() {
 
 int DatabaseBuildMain::Run(int argc, char* argv[]) {
 	Logger *logger = Logger::GetInstance();
-	logger->Log("building database...");
+	logger->Log("build database");
 	Aligner aligner;
 	try {
 		string input_filename;
