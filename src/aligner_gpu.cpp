@@ -95,7 +95,6 @@ void AlignerGpu::Presearch(Queries &queries, DatabaseType &database,
 	if (parameters.number_gpus == -1 || parameters.number_gpus > device_count) {
 		parameters.number_gpus = device_count;
 	}
-	stringstream ss;
 	ss << "use " << parameters.number_gpus << " GPUs." << endl;
 	logger->Log(ss.str());
 	vector<int> gpu_ids;
