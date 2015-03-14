@@ -59,7 +59,7 @@ aln:  Search homologues of queries from database
 
   ghostz-gpu aln [-i queries] [-o output] [-d database] [-v maxNumAliSub]
              [-b maxNumAliQue] [-h hitsSize] [-l queriesChunkSize] [-q queryType]
-             [-t databaseType] [-F filter] [-a numThreads]
+             [-t databaseType] [-F filter] [-a numThreads] [-g numGPUs]
 
   Options:
   (Required)
