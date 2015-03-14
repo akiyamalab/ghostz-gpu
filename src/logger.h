@@ -20,17 +20,17 @@ public:
     return &instance;
  }
 
-  void ErrorLog(std::string message) {
+  void ErrorLog(std::string &message) {
 //#pragma omp critical(lock_)
     std::cout << "error : " << message << std::endl;
   }
 
-  void WarningLog(std::string message) {
+  void WarningLog(std::string &message) {
 //#pragma omp critical(lock_)
-    std::cout << "warning : " << message << std::endl;
+    std::cout << "warning : " << &message << std::endl;
   }
 
-  void Log(std::string message) {
+  void Log(std::string &message) {
 //#pragma omp critical(lock_)
     std::cout << message << std::endl;
   }

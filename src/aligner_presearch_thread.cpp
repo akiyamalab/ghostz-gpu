@@ -127,8 +127,6 @@ void AlignerPresearchThread::Run(ThreadParameters& thread_parameters) {
 		}
 
 		if (thread_id == 0) {
-			cout << "start to presearch against database chunk "
-					<< shared_parameters->database->GetChunkId() << endl;
 			shared_parameters->next_hash_position_data_list_id = 0;
 			shared_parameters->next_chain_filter_query_id = 0;
 			UpdateDatabaseData(shared_parameters);
@@ -169,13 +167,9 @@ void AlignerPresearchThread::Run(ThreadParameters& thread_parameters) {
 				}
 			}
 
-			cout << thread_id << " thread finished seed search " << endl;
-
 			shared_parameters->presearch_barrier->wait();
 			SetChainFilteringSeeds();
 			shared_parameters->presearch_barrier->wait();
-
-			cout << thread_id << " thread starts extension " << endl;
 
 			while (!PopQueryIdsForChainFilter(&chain_filter_query_ids)) {
 				size_t next_chain_filter_query_id =
@@ -234,7 +228,6 @@ void AlignerPresearchThread::Run(ThreadParameters& thread_parameters) {
 				next_hits = NULL;
 				next_chain_filter_query_id = UINT_MAX;
 			}
-			cout << thread_id << " thread finished presearch " << endl;
 		}
 		shared_parameters->all_barrier->wait();
 		if (thread_id == 0) {

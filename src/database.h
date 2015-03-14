@@ -242,10 +242,10 @@ bool Database<TSeedSearcher>::SetChunk(int id) {
 			return false;
 		}
 		if (preload_chunk_id_ == id) {
-			std::cout << "set chunk id " << id << std::endl;
-			std::cout << "preload chunk id " << preload_chunk_id_ << std::endl;
+			//std::cout << "set chunk id " << id << std::endl;
+			//std::cout << "preload chunk id " << preload_chunk_id_ << std::endl;
 			ExchangeChunkList();
-			std::cout << "exchange preload chunk" << std::endl;
+			//std::cout << "exchange preload chunk" << std::endl;
 		} else {
 			std::stringstream prefix;
 			prefix.str("");
@@ -419,7 +419,7 @@ bool Database<TSeedSearcher>::SaveInformation(std::string filename_prefix) {
 
 template<typename TSeedSearcher>
 int Database<TSeedSearcher>::Preload(int id, PreloadTarget target) {
-	std::cout << "preload chunk " << id << std::endl;
+	//std::cout << "preload chunk " << id << std::endl;
 	if (!saving_) {
 		return 1;
 	}
@@ -468,7 +468,7 @@ int Database<TSeedSearcher>::Preload(int id, PreloadTarget target) {
 	if (target & kSeedSearcherParameters) {
 		chunk_list_[chunk_list_id]->GetSeedSearcherParameters();
 	}
-	std::cout << "finished preloading chunk " << id << std::endl;
+	//std::cout << "finished preloading chunk " << id << std::endl;
 	return 0;
 }
 

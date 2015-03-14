@@ -49,24 +49,34 @@ AlignerGpu::~AlignerGpu() {
 
 void AlignerGpu::Align(string &queries_filename, string &database_filename,
 		string &output_filename, AligningParameters &parameters) {
+	Logger *logger = Logger::GetInstance();
 	Queries::Parameters queries_parameters;
 	ifstream queries_is(queries_filename.c_str());
 	AlignerCommon::BuildQueriesParameters(parameters, queries_parameters);
 	DatabaseType database(database_filename);
 	ofstream os(output_filename.c_str());
+	stringstream ss;
 	for (Queries queries(queries_is, queries_parameters);
 			queries.GetNumberOfSequences() != 0; queries.Next()) {
-		cout << "number queries is " << queries.GetNumberOfSequences() << endl;
+		ss.str("");
+		ss << "number queries is " << queries.GetNumberOfSequences() << endl;
+		logger->Log(ss.str());
 		vector<vector<Aligner::PresearchedResult> > presearch_results_list(
 				queries.GetNumberOfSequences());
 		vector<vector<Aligner::Result> > results_list(
 				queries.GetNumberOfSequences());
-		cout << "starts presearch " << endl;
+		ss.str("");
+		ss << "start presearch " << endl;
+		logger->Log(ss.str());
 		Presearch(queries, database, parameters, presearch_results_list);
-		cout << "starts build results" << endl;
+		ss.str("");
+		ss << "start build results" << endl;
+		logger->Log(ss.str());
 		BuildResults(queries, database, parameters, presearch_results_list,
 				results_list);
-		cout << "writes results" << endl;
+		ss.str("");
+		cout << "write results" << endl;
+		logger->Log(ss.str());
 		AlignerCommon::WriteOutput(os, queries, database, parameters, results_list);
 	}
 	queries_is.close();
@@ -79,14 +89,15 @@ void AlignerGpu::Presearch(Queries &queries, DatabaseType &database,
 	Logger *logger = Logger::GetInstance();
 	int device_count = 0;
 	cudaGetDeviceCount(&device_count);
-
-	cout << device_count << " GPUs are available." << endl;
-
+	stringstream ss;
+	ss << device_count << " GPUs are available." << endl;
+	logger->Log(ss.str());
 	if (parameters.number_gpus == -1 || parameters.number_gpus > device_count) {
 		parameters.number_gpus = device_count;
 	}
-	cout << "use " << parameters.number_gpus << " GPUs." << endl;
-
+	stringstream ss;
+	ss << "use " << parameters.number_gpus << " GPUs." << endl;
+	logger->Log(ss.str());
 	vector<int> gpu_ids;
 	for (int device_i = 0; device_i < parameters.number_gpus; ++device_i) {
 		gpu_ids.push_back(device_i);

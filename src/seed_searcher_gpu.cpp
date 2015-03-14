@@ -548,6 +548,7 @@ bool SeedSearcherGpu::IsSufficientSimilarityCluster(
 }
 
 int SeedSearcherGpu::DumpSearchLog() {
+#if DEBUG
 	cout << "hash hits count " << hash_hits_count << endl;
 	cout << "calculate_distance_count " << calculate_distance_count << endl;
 	cout << "representation_hit_count " << representation_hit_count << endl;
@@ -557,6 +558,7 @@ int SeedSearcherGpu::DumpSearchLog() {
 	cout << "member_no_similarity_check_hit_count "
 			<< member_no_similarity_check_hit_count << endl;
 	cout << "ungapped_extension_count " << ungapped_extension_count << endl;
+#endif
 	return 0;
 }
 

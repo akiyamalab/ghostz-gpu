@@ -140,9 +140,7 @@ void AlignerGpuPresearchThread::Run(ThreadParameters& thread_parameters) {
 		host_seeds_memories_[i].Init(i, gpu_seeds_memory_size);
 		available_seeds_memory_ids_.push_back(i);
 	}
-	if (thread_id == 0) {
-		cout << "gpu seed size : " << gpu_seeds_memory_size << endl;
-	}
+
 	distance_calculation_size = std::min(distance_calculation_size,
 			gpu_seeds_memory_size);
 	ungapped_extension_with_trigger_size = std::min(
@@ -244,8 +242,6 @@ void AlignerGpuPresearchThread::Run(ThreadParameters& thread_parameters) {
 		}
 
 		if (thread_id == 0) {
-			cout << "start to presearch against database chunk "
-					<< shared_parameters->database->GetChunkId() << endl;
 			shared_parameters->next_hash_position_data_list_id = 0;
 			shared_parameters->next_chain_filter_query_id = 0;
 			UpdateDatabaseData(shared_parameters);
@@ -455,8 +451,6 @@ void AlignerGpuPresearchThread::Run(ThreadParameters& thread_parameters) {
 					ungapped_extension_with_trigger_seed_list_.GetSeedsLength()
 							== 0);
 
-			cout << thread_id << " thread finished seed search " << endl;
-
 			shared_parameters->presearch_barrier->wait();
 			SetChainFilteringSeeds();
 			shared_parameters->presearch_barrier->wait();
@@ -465,7 +459,7 @@ void AlignerGpuPresearchThread::Run(ThreadParameters& thread_parameters) {
 			assert(
 					gpu_stream_controller.GetNumberOfAvailableResources()
 							== kNumberOfGpuResources);
-			cout << thread_id << " thread starts extension " << endl;
+
 			size_t next_chain_filter_query_id = UINT_MAX;
 			vector<SeedSearcher::Hit> *next_hits = NULL;
 			for (size_t extension_seed_lists_i = 0;
@@ -635,7 +629,6 @@ void AlignerGpuPresearchThread::Run(ThreadParameters& thread_parameters) {
 				assert(seed_list.GetState() == ExtensionSeedList::kIdle);
 				ReleaseSeedsMemory(seed_list);
 			}
-			cout << thread_id << " thread finished presearch " << endl;
 		}
 		shared_parameters->all_barrier->wait();
 		if (thread_id == 0) {
