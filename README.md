@@ -1,42 +1,46 @@
-GHOSTZ
+GHOSTZ-GPU
 ======
 
-GHOSTZ is a homology search tool which can detect remote homologues like BLAST and is about 200 times more efficient than BLAST by using database subsequence clustering. GHOSTZ outputs search results in the format similar to BLAST-tabular format.
+GHOSTZ-GPU is a homology search tool which can detect remote homologues like BLAST and is about 5-7 times more efficient than GHOSTZ by using GHOSTZ. GHOSTZ-GPU outputs search results in the format similar to BLAST-tabular format.
 
 Requirements
 ------------
-gcc >4.3
+- gcc =>4.3
+- Boost >=1.55.0
+- CUDA >=6.0
 
 Installation
 ------------
 
-Download the archive of GHOSTZ from the above link.
+Download the archive of GHOSTZ-GPU from the above link.
 Extract the archive and cd into the extracted directory.
 Run make command.
-Copy 'ghostz' file to any directory you like.
-      $ tar xvzf ghostz.tar.gz
-      $ cd ghostz
-      $ make
-      $ cp ghostz /AS/YOU/LIKE/
+Copy 'ghostz-gpu' file to any directory you like.
+      $ tar xvzf ghostz-gpu.tar.gz
+      $ cd ghostz-gpu
+      $ make BOOST_PATH=Boost CUDA_TOOLKIT_PATH=CUDA
+      $ cp ghostz-gpu /AS/YOU/LIKE/
+    
+Boost and CUDA are directories where they are installed, respectively.
     
 Usage
 -----
 
-GHOSTZ requires specifically formatted database files for homology search. These files can be generated from FASTA formatted DNA/protein sequence files. 
-Users have to prepare a database file in FASTA format and convert it into GHOSTZ format database files by using GHOSTZ "db" command at first. GHOSTZ"db" command requires 2 args ([-i dbFastaFile] and [-o dbName]). GHOSTZ "db" command divides a database FASTA file into several database chunks and generates several files (.inf, .ind, .nam, .pos, .seq). All generated files are needed for the search. Users can specify the size of each chunk. Smaller chunk size requires smaller memory, but efficiency of the search will decrease. 
-For executing homology search, GHOSTZ "aln" command is used and that command requires at least 2 args([-i qryName] and [-d dbName]).
+GHOSTZ-GPU requires specifically formatted database files for homology search. These files can be generated from FASTA formatted DNA/protein sequence files. 
+Users have to prepare a database file in FASTA format and convert it into GHOSTZ-GPU format database files by using GHOSTZ-GPU "db" command at first. GHOSTZ-GPU "db" command requires 2 args ([-i dbFastaFile] and [-o dbName]). GHOSTZ-GPU "db" command divides a database FASTA file into several database chunks and generates several files (.inf, .ind, .nam, .pos, .seq). All generated files are needed for the search. Users can specify the size of each chunk. Smaller chunk size requires smaller memory, but efficiency of the search will decrease. 
+For executing homology search, GHOSTZ-GPU "aln" command is used and that command requires at least 2 args([-i qryName] and [-d dbName]).
 
 Example
 -------
-$ ghostz db  -i ./db.fasta -o exdb
+$ ghostz-gpu db  -i ./db.fasta -o exdb
 
-$ ghostz aln -i exqry -d exdb -o exout
+$ ghostz-gpu aln -i exqry -d exdb -o exout
 
 Command and Options
 -------------------
 db: convert a FASTA file to GHOSTX format database files
 
-  ghostz db [-i dbFastaFile] [-o dbName] [-C clustering][-l chunkSize]
+  ghostz-gpu db [-i dbFastaFile] [-o dbName] [-C clustering][-l chunkSize]
             [-L clusteringSubsequenceLength]  [-s seedThreshold]
 
   Options:
@@ -53,7 +57,7 @@ db: convert a FASTA file to GHOSTX format database files
 
 aln:  Search homologues of queries from database
 
-  ghostz aln [-i queries] [-o output] [-d database] [-v maxNumAliSub]
+  ghostz-gpu aln [-i queries] [-o output] [-d database] [-v maxNumAliSub]
              [-b maxNumAliQue] [-h hitsSize] [-l queriesChunkSize] [-q queryType]
              [-t databaseType] [-F filter] [-a numThreads]
 
@@ -72,9 +76,10 @@ aln:  Search homologues of queries from database
     -t STR    Database sequence type, p (protein) or d (dna) [p]
     -F STR    Filter query sequence, T (enable) or F (disable) [T] 
     -a INT    The number of threads [1]
+    -g INT    The number of GPUs [the number of available GPUs]
 Search results
 --------------
-GHOSTZ outputs the tab-deliminated file as search results.
+GHOSTZ-GPU outputs the tab-deliminated file as search results.
 
 Example)
   hsa:124045...   hsa:124045...   100       139     0       0       1       139     1       139     2.04391e-76     283.878
@@ -102,5 +107,5 @@ Each column shows;
 11. E-value
 12. Normalized score
 
-Copyright © 2014 Akiyama_Laboratory , Tokyo Institute of Technology , All Rights Reserved.  
+Copyright © 2015 Akiyama_Laboratory , Tokyo Institute of Technology , All Rights Reserved.  
 
