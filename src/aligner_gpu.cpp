@@ -59,25 +59,20 @@ void AlignerGpu::Align(string &queries_filename, string &database_filename,
 	for (Queries queries(queries_is, queries_parameters);
 			queries.GetNumberOfSequences() != 0; queries.Next()) {
 		ss.str("");
-		ss << "number queries is " << queries.GetNumberOfSequences() << endl;
+		ss << "number queries is " << queries.GetNumberOfSequences();
 		logger->Log(ss.str());
 		vector<vector<Aligner::PresearchedResult> > presearch_results_list(
 				queries.GetNumberOfSequences());
 		vector<vector<Aligner::Result> > results_list(
 				queries.GetNumberOfSequences());
-		ss.str("");
-		ss << "start presearch " << endl;
-		logger->Log(ss.str());
+		logger->Log("start presearch ");
 		Presearch(queries, database, parameters, presearch_results_list);
-		ss.str("");
-		ss << "start build results" << endl;
-		logger->Log(ss.str());
+		logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,
 				results_list);
-		ss.str("");
-		cout << "write results" << endl;
-		logger->Log(ss.str());
-		AlignerCommon::WriteOutput(os, queries, database, parameters, results_list);
+		logger->Log("start build results");
+		AlignerCommon::WriteOutput(os, queries, database, parameters,
+				results_list);
 	}
 	queries_is.close();
 	os.close();
@@ -90,12 +85,12 @@ void AlignerGpu::Presearch(Queries &queries, DatabaseType &database,
 	int device_count = 0;
 	cudaGetDeviceCount(&device_count);
 	stringstream ss;
-	ss << device_count << " GPUs are available." << endl;
+	ss << device_count << " GPUs are available.";
 	logger->Log(ss.str());
 	if (parameters.number_gpus == -1 || parameters.number_gpus > device_count) {
 		parameters.number_gpus = device_count;
 	}
-	ss << "use " << parameters.number_gpus << " GPUs." << endl;
+	ss << "use " << parameters.number_gpus << " GPUs.";
 	logger->Log(ss.str());
 	vector<int> gpu_ids;
 	for (int device_i = 0; device_i < parameters.number_gpus; ++device_i) {

@@ -54,7 +54,7 @@ void Aligner::BuildDatabase(string &input_filename, string &database_filename,
 		ss << "number chunks is " << database.GetNumberChunks() << endl;
 		ss << "number of sequences is " << database.GetNumberTotalSequences()
 				<< endl;
-		ss << "total size is " << database.GetDatabaseTotalLenght() << endl;
+		ss << "total size is " << database.GetDatabaseTotalLenght();
 		logger->Log(ss.str());
 	}
 	is.close();
@@ -72,24 +72,18 @@ void Aligner::Align(string &queries_filename, string &database_filename,
 	for (Queries queries(queries_is, queries_parameters);
 			queries.GetNumberOfSequences() != 0; queries.Next()) {
 		ss.str("");
-		ss << "number queries is " << queries.GetNumberOfSequences() << endl;
+		ss << "number queries is " << queries.GetNumberOfSequences();
 		logger->Log(ss.str());
 		vector<vector<Aligner::PresearchedResult> > presearch_results_list(
 				queries.GetNumberOfSequences());
 		vector<vector<Aligner::Result> > results_list(
 				queries.GetNumberOfSequences());
-		ss.str("");
-		ss << "start presearch " << endl;
-		logger->Log(ss.str());
+		logger->Log("start presearch");
 		Presearch(queries, database, parameters, presearch_results_list);
-		ss.str("");
-		ss << "start build results" << endl;
-		logger->Log(ss.str());
+		logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,
 				results_list);
-		ss.str("");
-		ss << "write results" << endl;
-		logger->Log(ss.str());
+		logger->Log("write results" );
 		WriteOutput(os, queries, database, parameters, results_list);
 	}
 	queries_is.close();
