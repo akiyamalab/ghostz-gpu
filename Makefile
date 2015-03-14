@@ -32,7 +32,7 @@ PROFILE    := Yes
 
 USE_GPU    := Yes
 
-NVCC=$(CUDA_Toolkit_PATH)/bin/nvcc
+NVCC=$(CUDA_TOOLKIT_PATH)/bin/nvcc
 CC=$(NVCC)
 CXX=$(NVCC)
 
