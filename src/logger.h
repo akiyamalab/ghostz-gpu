@@ -27,7 +27,7 @@ public:
 
   void WarningLog(std::string message) {
 //#pragma omp critical(lock_)
-    std::cout << "warning : " << message << std::endl;
+    std::cout << "warning : " << &message << std::endl;
   }
 
   void Log(std::string message) {

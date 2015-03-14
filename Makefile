@@ -5,14 +5,13 @@
 #----------------------------------------------#
 # Library PATH				             #
 #----------------------------------------------#
-CUDA_Toolkit_PATH ?= /opt/cuda6.0/
+CUDA_TOOLKIT_PATH ?= /usr/local/cuda/
 BOOST_PATH ?= /usr/local/
 
 #----------------------------------------------#
 # GPU environment settings               #
 #----------------------------------------------#
 
-USE_GPU    := Yes
 GPU_ARCH=compute_35
 GPU_CODE=sm_35
 
@@ -20,18 +19,20 @@ GPU_CODE=sm_35
 # Mode               		          #
 #----------------------------------------------#
 
-Mode    := Release
- # (If you do not use Debug mode, please set the value as Debug)
+MODE    := Release
+ # (If you use Debug mode, please set the value as Debug)
 
 #----------------------------------------------#
 # Profile mode                           #
 #----------------------------------------------#
 
-
 PROFILE    := Yes
 #-----------------------------------------------------------------------------------------#
 
-NVCC=$(CUDA_Toolkit_PATH)/bin/nvcc
+
+USE_GPU    := Yes
+
+NVCC=$(CUDA_TOOLKIT_PATH)/bin/nvcc
 CC=$(NVCC)
 CXX=$(NVCC)
 
@@ -42,19 +43,20 @@ CXXFLAGS=
 NVCCFLAGS= 
 
 LDLIBS = -L$(BOOST_PATH)/lib
-LDFLAGS =  -lm -lboost_thread --cudart static
+LDFLAGS =  -lm -lboost_thread -lboost_system --cudart static 
 
 EXECUTABLE = 
 ifeq ($(USE_GPU),Yes)
 	CFLAGS   += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
 	CXXFLAGS += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
-	NVCCFLAGS  += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
+	NVCCFLAGS  += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE)
+	LDFLAGS += -gencode arch=$(GPU_ARCH),code=$(GPU_CODE)
 	EXECUTABLE = ghostz_gpu
 else
 	EXECUTABLE = ghostz
 endif
 
-ifeq ($(Mode),Release)
+ifeq ($(MODE),Release)
 	CFLAGS += -O3
 	CXXFLAGS   += -O3
 	NVCCFLAGS  += -O3
@@ -63,7 +65,7 @@ ifeq ($(PROFILE),Yes)
 	CXXFLAGS   += -g
 	NVCCFLAGS  += -g
 endif
-else ifeq ($(Debug),Yes)
+else ifeq ($(MODE),Debug)
 	CFLAGS += -g -O0
 	CXXFLAGS   += -g -O0
 	NVCCFLAGS  += -g -G -O0
@@ -150,7 +152,7 @@ OBJS += $(CU_SRC:%.cu=%.o)
 all:ghostz
 
 ghostz: $(OBJS)
-	$(NVCC) -o $(EXECUTABLE) $(OBJS) $(LDFLAGS) $(LDLIBS)
+	$(NVCC) $(LDLIBS) $(LDFLAGS) -o $(EXECUTABLE) $(OBJS)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@  $(INCLUDES)

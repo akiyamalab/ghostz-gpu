@@ -26,7 +26,6 @@ using namespace std;
 
 AlignMain::AlignMain() {
 
-
 }
 
 AlignMain::~AlignMain() {
@@ -36,23 +35,31 @@ AlignMain::~AlignMain() {
 int AlignMain::Run(int argc, char* argv[]) {
 	Logger *logger = Logger::GetInstance();
 	logger->Log("searching...");
-#if 0
-	Aligner aligner;
-	Aligner::AligningParameters parameters;
-#else
-	AlignerGpu aligner;
-	AlignerGpu::AligningParameters parameters;
-#endif
-	//try {
+
+	AlignerCommon::AligningCommonParameters parameters;
 	string queries_filename;
 	string database_filename;
 	string output_filename;
 
+	//try {
 	bool ret = BuildParameters(argc, argv, queries_filename, database_filename,
 			output_filename, parameters);
 	if (ret) {
+#ifndef GPU
+		Aligner aligner;
 		aligner.Align(queries_filename, database_filename, output_filename,
 				parameters);
+#else
+		if (parameters.number_gpus == 0) {
+			Aligner aligner;
+			aligner.Align(queries_filename, database_filename, output_filename,
+					parameters);
+		} else {
+			AlignerGpu aligner;
+			aligner.Align(queries_filename, database_filename, output_filename,
+					parameters);
+		}
+#endif
 		logger->Log("finished");
 		return 0;
 	}
@@ -61,6 +68,7 @@ int AlignMain::Run(int argc, char* argv[]) {
 	 } catch (exception &e) {
 	 logger->ErrorLog(e.what());
 	 }*/
+
 	return 1;
 }
 
@@ -87,7 +95,6 @@ bool AlignMain::BuildParameters(int argc, char* argv[], string &input_filename,
 	ScoreMatrixReader score_matrix_reader;
 	vector<int> matrix;
 	unsigned int number_letters;
-	string score_matrix_name = score_matrix_filename;
 	istringstream default_protein_score_matrix_is(default_protein_matrix);
 	score_matrix_reader.Read(default_protein_score_matrix_is,
 			*(parameters.aligning_sequence_type_ptr), matrix, number_letters);
@@ -95,13 +102,14 @@ bool AlignMain::BuildParameters(int argc, char* argv[], string &input_filename,
 			&matrix[0], number_letters);
 	parameters.gap_open = 11;
 	parameters.gap_extension = 1;
+	parameters.number_gpus = -1;
 	parameters.normalized_presearched_ungapped_extension_cutoff = 7.0;
 	parameters.normalized_presearched_gapped_extension_trigger = 22.0;
 	parameters.normalized_presearched_gapped_extension_cutoff = 15.0;
 	parameters.normalized_result_gapped_extension_cutoff = 25.0;
 	parameters.max_number_results = 10;
 	parameters.max_number_one_subject_results = 1;
-	while ((c = getopt(argc, argv, "a:b:d:F:h:l:i:o:q:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:b:d:F:g:h:l:i:o:q:t:v:")) != -1) {
 		switch (c) {
 		case 'a':
 			parameters.number_threads = atoi(optarg);
@@ -122,20 +130,12 @@ bool AlignMain::BuildParameters(int argc, char* argv[], string &input_filename,
 				return false;
 			}
 			break;
+		case 'g':
+			parameters.number_gpus = atoi(optarg);
+			break;
 		case 'l':
 			parameters.queries_chunk_size = atoi(optarg);
 			break;
-			/*
-			 case 'M':
-			 score_matrix_filename = optarg;
-			 break;
-			 case 'G':
-			 parameters.gap_open = atoi(optarg);
-			 break;
-			 case 'E':
-			 parameters.gap_extension = atoi(optarg);
-			 break;
-			 */
 		case 'i':
 			input_filename = optarg;
 			break;
@@ -173,21 +173,6 @@ bool AlignMain::BuildParameters(int argc, char* argv[], string &input_filename,
 			logger->ErrorLog("\nTry `ghostz --help' for more information.");
 			return false;
 		}
-	}
-
-	if (score_matrix_filename.size() != 0) {
-		ifstream score_matrix_is(score_matrix_filename.c_str());
-		score_matrix_reader.Read(score_matrix_is,
-				*(parameters.aligning_sequence_type_ptr), matrix,
-				number_letters);
-		score_matrix_is.close();
-		string::size_type index = score_matrix_name.find_last_of('/');
-		if (index != string::npos) {
-			score_matrix_name = score_matrix_name.substr(index + 1,
-					score_matrix_name.length() - index - 1);
-		}
-		parameters.score_matrix = ScoreMatrix(score_matrix_name, &matrix[0],
-				number_letters);
 	}
 	return true;
 }

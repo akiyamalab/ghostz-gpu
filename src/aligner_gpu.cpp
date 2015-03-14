@@ -49,25 +49,30 @@ AlignerGpu::~AlignerGpu() {
 
 void AlignerGpu::Align(string &queries_filename, string &database_filename,
 		string &output_filename, AligningParameters &parameters) {
+	Logger *logger = Logger::GetInstance();
 	Queries::Parameters queries_parameters;
 	ifstream queries_is(queries_filename.c_str());
 	AlignerCommon::BuildQueriesParameters(parameters, queries_parameters);
 	DatabaseType database(database_filename);
 	ofstream os(output_filename.c_str());
+	stringstream ss;
 	for (Queries queries(queries_is, queries_parameters);
 			queries.GetNumberOfSequences() != 0; queries.Next()) {
-		cout << "number queries is " << queries.GetNumberOfSequences() << endl;
+		ss.str("");
+		ss << "number queries is " << queries.GetNumberOfSequences();
+		logger->Log(ss.str());
 		vector<vector<Aligner::PresearchedResult> > presearch_results_list(
 				queries.GetNumberOfSequences());
 		vector<vector<Aligner::Result> > results_list(
 				queries.GetNumberOfSequences());
-		cout << "starts presearch " << endl;
+		logger->Log("start presearch ");
 		Presearch(queries, database, parameters, presearch_results_list);
-		cout << "starts build results" << endl;
+		logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,
 				results_list);
-		cout << "writes results" << endl;
-		AlignerCommon::WriteOutput(os, queries, database, parameters, results_list);
+		logger->Log("start build results");
+		AlignerCommon::WriteOutput(os, queries, database, parameters,
+				results_list);
 	}
 	queries_is.close();
 	os.close();
@@ -76,14 +81,22 @@ void AlignerGpu::Align(string &queries_filename, string &database_filename,
 void AlignerGpu::Presearch(Queries &queries, DatabaseType &database,
 		AligningParameters &parameters,
 		std::vector<std::vector<PresearchedResult> > &results_list) {
+	Logger *logger = Logger::GetInstance();
 	int device_count = 0;
 	cudaGetDeviceCount(&device_count);
-	cout << device_count << " GPUs are available." << endl;
+	stringstream ss;
+	ss << device_count << " GPUs are available.";
+	logger->Log(ss.str());
+	if (parameters.number_gpus == -1 || parameters.number_gpus > device_count) {
+		parameters.number_gpus = device_count;
+	}
+	ss.str("");
+	ss << "use " << parameters.number_gpus << " GPUs.";
+	logger->Log(ss.str());
 	vector<int> gpu_ids;
-	gpu_ids.push_back(0);
-	gpu_ids.push_back(1);
-	gpu_ids.push_back(2);
-
+	for (int device_i = 0; device_i < parameters.number_gpus; ++device_i) {
+		gpu_ids.push_back(device_i);
+	}
 	bool database_preload = true;
 	Statistics statistics(*(parameters.aligning_sequence_type_ptr));
 	Statistics::KarlinParameters gapped_karlin_parameters;

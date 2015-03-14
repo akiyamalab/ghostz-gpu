@@ -270,7 +270,7 @@ int SeedSearcherDatabaseParameters::Build(AlphabetCoder::Code *sequence,
 			}
 		}
 
-#if DEBUG || 1
+#if DEBUG
 		size_t representative_count = 0;
 		size_t member_count = 0;
 		size_t no_member_cluster_representative_count = 0;

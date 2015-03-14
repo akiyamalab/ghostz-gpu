@@ -73,15 +73,10 @@ void AlignerBuildResultsThread<TDatabase>::Run(Parameters &parameters) {
 	parameters_->all_barrier->wait();
 	while (parameters_->database->GetChunkId()
 			< (int) parameters_->database->GetNumberChunks()) {
-		if (parameters_->thread_id == 0) {
-			std::cout << "trace back against database chunk "
-					<< parameters_->database->GetChunkId() << std::endl;
-		}
+
 		if (parameters_->thread_id < 0) {
 			typename Database::PreloadTarget target = Database::kName
 					| Database::kSequence | Database::kOffset;
-			std::cout << "preload thread begin to preload chunk "
-					<< parameters_->database->GetChunkId() + 1 << std::endl;
 			parameters_->database->Preload(
 					parameters_->database->GetChunkId() + 1, target);
 		} else {
