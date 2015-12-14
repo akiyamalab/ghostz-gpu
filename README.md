@@ -32,9 +32,9 @@ For executing homology search, GHOSTZ-GPU "aln" command is used and that command
 
 Example
 -------
-$ ghostz-gpu db  -i ./db.fasta -o exdb
+$ ghostz-gpu db  -i ./data/db.fasta -o exdb
 
-$ ghostz-gpu aln -i exqry -d exdb -o exout
+$ ghostz-gpu aln -i ./data/queries.fasta -d exdb -o exout
 
 Command and Options
 -------------------
