@@ -5,17 +5,17 @@ GHOSTZ-GPU is a homology search tool which can detect remote homologues like BLA
 
 Requirements
 ------------
-- gcc =>4.3
-- Boost >=1.55.0
-- CUDA >=6.0
+- gcc => 4.3
+- Boost >= 1.55.0
+- CUDA >= 6.0
 
 Installation
 ------------
 
-Download the archive of GHOSTZ-GPU from the above link.
-Extract the archive and cd into the extracted directory.
-Run make command.
-Copy 'ghostz-gpu' file to any directory you like.
+- Download the archive of GHOSTZ-GPU from this repository.
+- Extract the archive and cd into the extracted directory.
+- Run make command.
+- Copy 'ghostz-gpu' binary file to any directory you like.
       $ tar xvzf ghostz-gpu.tar.gz
       $ cd ghostz-gpu
       $ make BOOST_PATH=Boost CUDA_TOOLKIT_PATH=CUDA
