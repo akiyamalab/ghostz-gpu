@@ -11,17 +11,19 @@ Requirements
 
 Installation
 ------------
+1. Download the archive of GHOSTZ-GPU from this repository.
+2. Extract the archive and cd into the extracted directory.
+3. Run make command.
+4. Copy 'ghostz-gpu' binary file to any directory you like.
 
-- Download the archive of GHOSTZ-GPU from this repository.
-- Extract the archive and cd into the extracted directory.
-- Run make command.
-- Copy 'ghostz-gpu' binary file to any directory you like.
+Commands:
 
     $ tar xvzf ghostz-gpu.tar.gz
     $ cd ghostz-gpu
     $ make BOOST_PATH=Boost CUDA_TOOLKIT_PATH=CUDA
     $ cp ghostz-gpu /AS/YOU/LIKE/
-    
+
+
 Boost and CUDA are directories where they are installed, respectively.
     
 Usage
@@ -104,5 +106,5 @@ Each column shows;
 11. E-value
 12. Normalized score
 
-Copyright © 2015 Akiyama_Laboratory , Tokyo Institute of Technology , All Rights Reserved.  
+Copyright © 2015 Akiyama_Laboratory, Tokyo Institute of Technology, All Rights Reserved.  
 
