@@ -16,6 +16,7 @@ Installation
 - Extract the archive and cd into the extracted directory.
 - Run make command.
 - Copy 'ghostz-gpu' binary file to any directory you like.
+
       $ tar xvzf ghostz-gpu.tar.gz
       $ cd ghostz-gpu
       $ make BOOST_PATH=Boost CUDA_TOOLKIT_PATH=CUDA
