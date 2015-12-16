@@ -32,17 +32,16 @@ Usage
 -----
 GHOSTZ-GPU requires specifically formatted database files for homology search. These files can be generated from FASTA formatted DNA/protein sequence files. 
 
-Users have to prepare a database file in FASTA format and convert it into GHOSTZ-GPU format database files by using GHOSTZ-GPU `db` command at first.  
-GHOSTZ-GPU `db` command requires 2 args (`[-i dbFastaFile]` and `[-o dbName]`).  
-GHOSTZ-GPU `db` command divides a database FASTA file into several database chunks and generates several files (.inf, .ind, .nam, .pos, .seq).  
-All generated files are needed for the search. Users can specify the size of each chunk. Smaller chunk size requires smaller memory, but efficiency of the search will decrease.  
+Users have to prepare a database file in FASTA format and convert it into GHOSTZ-GPU format database files by using GHOSTZ-GPU `db` command at first. GHOSTZ-GPU `db` command requires 2 args (`[-i dbFastaFile]` and `[-o dbName]`). GHOSTZ-GPU `db` command divides a database FASTA file into several database chunks and generates several files (.inf, .ind, .nam, .pos, .seq). All generated files are needed for the search. Users can specify the size of each chunk. Smaller chunk size requires smaller memory, but efficiency of the search will decrease.  
 For executing homology search, GHOSTZ-GPU `aln` command is used and that command requires at least 2 args (`[-i qryName]` and `[-d dbName]`).
 
 Example
 -------
-$ ghostz-gpu db  -i ./data/db.fasta -o exdb
 
-$ ghostz-gpu aln -i ./data/queries.fasta -d exdb -o exout
+    $ ghostz-gpu db  -i ./data/db.fasta -o exdb
+
+
+    $ ghostz-gpu aln -i ./data/queries.fasta -d exdb -o exout
 
 Command and Options
 -------------------
