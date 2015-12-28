@@ -1,4 +1,4 @@
-GHOSTZ-GPU
+![logo](http://www.bi.cs.titech.ac.jp/ghostz-gpu/ghostzgpu-logo.png)
 ======
 
 GHOSTZ-GPU is a homology search tool which can detect remote homologues like BLAST and is about 5-7 times more efficient than GHOSTZ by using GHOSTZ. 
