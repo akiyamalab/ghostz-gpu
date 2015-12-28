@@ -45,7 +45,7 @@ Example
 
 Command and Options
 -------------------
-`db`: convert a FASTA file to GHOSTX format database files
+`db`: convert a FASTA file to GHOSTZ format database files
 
     ghostz-gpu db [-i dbFastaFile] [-o dbName] [-C clustering][-l chunkSize]
         [-L clusteringSubsequenceLength]  [-s seedThreshold]
@@ -111,6 +111,11 @@ Each column shows;
 10. End position of the subject in the alignment
 11. *E*-value
 12. Normalized score
+
+References
+----------
+Shuji Suzuki, Masanori Kakuta, Takashi Ishida, Yutaka Akiyama. Acceleration of sequence homology searches by means of graphics processing units (GPUs) and database subsequence clustering. (submitted)
+
 
 Copyright © 2015 Akiyama_Laboratory, Tokyo Institute of Technology, All Rights Reserved.  
 
