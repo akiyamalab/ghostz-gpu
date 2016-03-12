@@ -102,7 +102,7 @@ void AlignerBuildResultsThread<TDatabase>::Run(Parameters &parameters) {
 					assert(
 							query_id
 									< parameters_->queries->GetNumberOfSequences());
-					assert(result_id < 10);
+
 					assert(
 							result_id
 									< (parameters_->results_list)[query_id].size());
@@ -181,7 +181,7 @@ void AlignerBuildResultsThread<TDatabase>::Run(Parameters &parameters) {
 		while (!query_ids.empty()) {
 			uint32_t query_id = query_ids.back();
 			query_ids.pop_back();
-			assert(parameters_->results_list[query_id].size() <= 10);
+
 			sort(parameters_->results_list[query_id].begin(),
 					parameters_->results_list[query_id].end(),
 					AlignerCommon::ResultGreaterScore());

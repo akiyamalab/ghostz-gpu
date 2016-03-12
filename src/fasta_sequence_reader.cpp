@@ -63,7 +63,7 @@ bool FastaSequenceReader::Read(std::string &name, std::string &sequence) {
         }
       }
     }
-
+    std::transform(sequence.begin(), sequence.end(), sequence.begin(), ::toupper);
     if (in_->eof()) {
       in_->clear();
     }
