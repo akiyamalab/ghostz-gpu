@@ -372,7 +372,7 @@ void AlignerGpuPresearchThread::Run(ThreadParameters& thread_parameters) {
 						}
 					}
 
-					if (gpu_run_state_list_[last_run_gpu_controller_resource_id_]
+					if (last_run_gpu_controller_resource_id_ >=0 && gpu_run_state_list_[last_run_gpu_controller_resource_id_]
 							== kDistanceCalculation) {
 						gpu_stream_controller.WaitRun(
 								last_run_gpu_controller_resource_id_);
