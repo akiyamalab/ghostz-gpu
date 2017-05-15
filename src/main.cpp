@@ -58,7 +58,12 @@ void PrintUsage() {
 					"    -g INT    The number of GPUs [the number of available GPUs]");
 }
 
+#ifndef F_MPI
 int main(int argc, char* argv[]) {
+#else
+int smp_main(int argc,char* argv[]){
+#endif
+
 	if (argc < 2 || strcmp(argv[1], "-h") == 0
 			|| strcmp(argv[1], "--help") == 0) {
 		PrintUsage();
