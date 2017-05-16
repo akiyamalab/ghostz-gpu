@@ -1,5 +1,6 @@
-ghostz-gpu
 ghostz
+ghostz-gpu
+ghostz-gpu-mpi
 *.o
 \#*#
 *~
