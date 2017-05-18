@@ -160,7 +160,10 @@ CPP_SRC=./ext/seg/src/seg.cpp \
 	./src/protein_query.cpp \
 	./src/variable_hash_sequences_index.cpp
 
-MPI_SRC=./src/mpi_main.cpp
+MPI_SRC=./src/mpi_main.cpp \
+        ./src/align_main_mpi.cpp \
+	./src/aligner_mpi.cpp \
+	./src/mpi_common.cpp
 
 CU_SRC=./src/aligner_gpu_data.cu \
 	./src/distance_calculator_gpu_ref_kernel.cu \
