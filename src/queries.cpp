@@ -33,8 +33,14 @@
 #include <utility>
 #include <functional>
 #include <boost/thread.hpp>
+#include <fstream>
 
 using namespace std;
+Queries::Queries(const Parameters &parameters) :
+		parameters_(parameters), max_query_sequence_length_(0), next_query_(QueryPtr()) {
+
+	
+}
 
 Queries::Queries(istream &in, const Parameters &parameters) :
 		parameters_(parameters), max_query_sequence_length_(0), reader_(in), next_query_(
@@ -80,6 +86,9 @@ uint32_t Queries::GetSequenceLength(
 	}
 }
 
+
+
+
 Queries::QueryPtr Queries::BuildQuery(Sequence &sequence,
 		Parameters &parameters, Translator &translator,
 		SequenceFilterInterface *sequence_filter) {
@@ -103,6 +112,63 @@ Queries::QueryPtr Queries::BuildQuery(Sequence &sequence,
 						parameters.ungapped_karlin_parameters));
 	}
 	return QueryPtr();
+}
+
+std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is){
+	string name;
+	string sequence;
+	
+	bool reader_ret;
+	FastaSequenceReader reader(is);
+	unsigned int loaded_chunk_size;
+	cout<<"max_size:"<<parameters_.chunk_size<<endl;
+	cout<<"start:"<<is.tellg()<<endl;
+	while(1){
+		size_t number_queries = 0;
+		size_t number_read_sequences = 0;
+		size_t queries_offset = 0;
+		if (loaded_chunk_size >= parameters_.chunk_size) {
+			break;
+		}
+		//queries_offset = parameters_.number_queries;
+		for (number_read_sequences = 0;
+			 number_read_sequences < kNumberReadSequences;
+			 ++number_read_sequences) {
+			reader_ret = reader.Read(name,sequence);
+			if (!reader_ret) {
+				break;
+			}
+			uint32_t new_sequence_length = 
+				GetSequenceLength(parameters_.file_sequence_type_ptr,
+								  parameters_.aligning_sequence_type_ptr,
+								  sequence.size());
+			loaded_chunk_size += new_sequence_length;
+			if (loaded_chunk_size
+				>= parameters_.chunk_size) {
+				break;
+			}
+			
+		}
+		if (loaded_chunk_size >= parameters_.chunk_size) {
+			number_queries = number_read_sequences;
+			++number_read_sequences;
+		} else {
+			number_queries = number_read_sequences;
+		}
+
+		if (number_read_sequences != kNumberReadSequences) {
+			break;
+		}
+		
+
+	}
+	if(is.tellg()==ios_base::end){
+		cout<<"eof"<<endl;
+	}
+	cout<<"current:"<<is.tellg()<<endl;
+	return is.tellg();
+
+
 }
 
 void Queries::RunThreadForSetingQueries(int thread_id,

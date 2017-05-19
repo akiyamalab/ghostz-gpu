@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <tr1/memory>
 #include <boost/thread.hpp>
+#include <fstream>
 
 class Queries {
 public:
@@ -33,6 +34,7 @@ public:
 		int number_threads;
 	} Parameters;
 
+	Queries(const Parameters &parameters);
 	Queries(std::istream &in, const Parameters &parameters);
 
 	virtual ~Queries() {
@@ -50,7 +52,14 @@ public:
 	uint32_t GetMaxQuerySequenceLength() {
 		return max_query_sequence_length_;
 	}
-
+	
+	std::ifstream::pos_type GetNextChunkPosition(std::istream &is);		
+  
+	static uint32_t GetSequenceLength(
+		   std::tr1::shared_ptr<SequenceType> &file_sequence_type_ptr,
+           std::tr1::shared_ptr<SequenceType> &aligning_sequence_type_ptr,
+           uint32_t length);
+	
 private:
 	typedef std::tr1::shared_ptr<Query> QueryPtr;
 	typedef std::tr1::shared_ptr<SequenceFilterInterface> FilterPtr;
@@ -70,16 +79,14 @@ private:
 	static const uint32_t kNumberReadSequences = 1 << 5;
 	static FilterPtr GetFilter(bool filter,
 			std::tr1::shared_ptr<SequenceType> &aligning_sequence_type_ptr);
-	static uint32_t GetSequenceLength(
-			std::tr1::shared_ptr<SequenceType> &file_sequence_type_ptr,
-			std::tr1::shared_ptr<SequenceType> &aligning_sequence_type_ptr,
-			uint32_t length);
+
 	static QueryPtr BuildQuery(Sequence &sequence, Parameters &parameters,
 			Translator &translator, SequenceFilterInterface *sequence_filter);
 	static void RunThreadForSetingQueries(int thread_id,
 			ThreadParameters &parameters);
 	bool SetQueries();
 
+	
 	Parameters parameters_;
 	std::vector<QueryPtr> queries_;
 	uint32_t max_query_sequence_length_;

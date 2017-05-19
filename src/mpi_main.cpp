@@ -20,6 +20,7 @@ void PrintUsageMPI(){
 	logger->Log(
 				string("GHOSTZ-GPU-MPI version" + common::kVersion)
 				);
+	//PrintUsage();
 	
 }
 
@@ -27,7 +28,7 @@ void PrintUsageMPI(){
 #ifdef F_MPI
 int main(int argc, char* argv[]){
 #else
-int mpi_main(int argv,char* argv[]){
+int mpi_main(int argc,char* argv[]){
 #endif
 	int ret=0;
     if(argc < 2 || strcmp(argv[1], "-h") == 0
@@ -40,7 +41,8 @@ int mpi_main(int argv,char* argv[]){
 		int rank;
 		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 		cout<<"test:rank"<<rank<<endl;
-
+		MPICommon common;
+		common.debug(argc-1,argv+1);
 		
 		
 		MPI_Finalize();
