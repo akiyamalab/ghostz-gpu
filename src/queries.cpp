@@ -121,8 +121,6 @@ std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is){
 	bool reader_ret;
 	FastaSequenceReader reader(is);
 	unsigned int loaded_chunk_size;
-	cout<<"max_size:"<<parameters_.chunk_size<<endl;
-	cout<<"start:"<<is.tellg()<<endl;
 	while(1){
 		size_t number_queries = 0;
 		size_t number_read_sequences = 0;
@@ -162,10 +160,8 @@ std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is){
 		
 
 	}
-	if(is.tellg()==ios_base::end){
-		cout<<"eof"<<endl;
-	}
-	cout<<"current:"<<is.tellg()<<endl;
+  
+  
 	return is.tellg();
 
 

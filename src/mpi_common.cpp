@@ -121,16 +121,23 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 		}
 }
 
+
+
 void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 						  string &output_filename,
 						  AligningParameters &parameter,MPIParameter &mpi_parameter){
-
-	BuildQueryChunkPointers(queries_filename,_chunk_pointer_list,_chunk_size_list,parameter);
-	
+	MasterResources resources;	
+	SetupMasterResources(queries_filename,database_filename,resources,parameter);
+#if 1
 	int i=0;
-	for(i=0;i<_chunk_pointer_list.size();i++){
-		cout<<i<<" ptr:"<<_chunk_pointer_list[i]<<" size:"<<_chunk_size_list[i]<<endl;
+	for(i=0;i<resources.query_list.size();i++){
+		cout<<resources.query_list[i].chunk_id;
+		cout<<" ptr:"<<resources.query_list[i].ptr;
+		cout<<" size:"<<resources.query_list[i].size<<endl;;
 	}
+#endif
+
+	
 	
 }
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter){
@@ -142,7 +149,28 @@ void MPICommon::RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_par
 
 }
 
-					  
+void MPICommon::SetupMasterResources(string &queries_filename,string &database_filename,
+									 MasterResources &resources,AligningParameters &parameter){
+	
+	//init query resource
+	vector<int> pointer_list;
+	vector<int> size_list;
+	
+	BuildQueryChunkPointers(queries_filename,pointer_list,size_list,parameter);
+	int query_chunk_number = pointer_list.size();
+	for(int i=0;i<query_chunk_number;i++){
+		QueryResource query_resource;
+		query_resource.size=size_list[i];
+		query_resource.ptr=pointer_list[i];
+		query_resource.chunk_id=i;
+		query_resource.available=false;
+		resources.query_list.push_back(query_resource);
+	}
+
+
+	//init database resource
+
+}					  
 void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &chunk_pointer_list,
 										vector<int> &chunk_size_list,AligningParameters &parameter){
 	
@@ -176,6 +204,37 @@ void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &ch
 		chunk_size_list.push_back(size);
 		delete [] array;
 	}
+}
+void MPICommon::LoadQueryResource(string &queries_filename,MasterResources &resources,
+								  AligningParameters &parameter,int chunk_id){
+	if(chunk_id > resources.query_list.size()){
+		cerr<<"query chunk id error:"<<chunk_id<<endl;
+		MPI_Abort(MPI_COMM_WORLD,1);
+	}
+	if(resources.query_list[chunk_id].available){
+		return ;
+	}
+	resources.query_list[chunk_id].data 
+		= new char[resources.query_list[chunk_id].size];
+	
+	ifstream in(queries_filename.c_str());
+	in.seekg(resources.query_list[chunk_id].ptr);
+	in.read(resources.query_list[chunk_id].data,resources.query_list[chunk_id].size);
+	in.close();
+		
+}
+void MPICommon::UnloadQueryResource(MasterResources &resources,int chunk_id){
+	if(chunk_id > resources.query_list.size()){
+		cerr<<"query chunk id error:"<<chunk_id<<endl;
+		MPI_Abort(MPI_COMM_WORLD,1);
+	}
+	if(!resources.query_list[chunk_id].available){
+		return ;
+	}
+
+	delete [] resources.query_list[chunk_id].data;
+	resources.query_list[chunk_id].available=false;
+	
 }
 
 
