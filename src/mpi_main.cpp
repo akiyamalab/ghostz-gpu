@@ -37,15 +37,15 @@ int mpi_main(int argc,char* argv[]){
         exit(1);
     }
 	if(strcmp(argv[1],"test")==0){
-		MPI_Init(&argc,&argv);
-		int rank;
-		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+		
+		MPI::Init(argc,argv);
+		int rank = MPI::COMM_WORLD.Get_rank();
 		cout<<"test:rank"<<rank<<endl;
 		MPICommon common;
 		common.debug(argc-1,argv+1);
 		
 		
-		MPI_Finalize();
+		MPI::Finalize();
 	}
 	
 	if(strcmp(argv[1],"db")==0){
@@ -55,10 +55,11 @@ int mpi_main(int argc,char* argv[]){
 	
 
 	if(strcmp(argv[1],"aln")==0){
-		MPI_Init(&argc,&argv);
-		int rank;
-		MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-		cout<<"rank"<<rank<<endl;
+		
+		int ret=MPI::Init_thread(argc,argv,MPI_THREAD_MULTIPLE);
+		int rank = MPI::COMM_WORLD.Get_rank();
+		cout<<"rank"<<rank<<":"<<ret<<":"<<MPI_THREAD_SERIALIZED<<endl;
+		
 		MPICommon::MPIParameter mpi_parameter;
 		mpi_parameter.rank=rank;
 		AlignMainMPI main;
@@ -67,7 +68,7 @@ int mpi_main(int argc,char* argv[]){
 		}else{
 			ret=0; //test : only rank0 do aln 
 		}
-		MPI_Finalize();
+		MPI::Finalize();
 			
 		}
 		return 0;

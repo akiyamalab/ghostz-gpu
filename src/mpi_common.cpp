@@ -126,7 +126,8 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 						  string &output_filename,
 						  AligningParameters &parameter,MPIParameter &mpi_parameter){
-	MasterResources resources;	
+	MasterResources resources;
+	resources.query_filename=queries_filename;
 	SetupMasterResources(queries_filename,database_filename,resources,parameter);
 #if 1
 	int i=0;
@@ -205,8 +206,8 @@ void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &ch
 		delete [] array;
 	}
 }
-void MPICommon::LoadQueryResource(string &queries_filename,MasterResources &resources,
-								  AligningParameters &parameter,int chunk_id){
+void MPICommon::LoadQueryResource(MasterResources &resources,int chunk_id){
+   
 	if(chunk_id > resources.query_list.size()){
 		cerr<<"query chunk id error:"<<chunk_id<<endl;
 		MPI_Abort(MPI_COMM_WORLD,1);
@@ -217,7 +218,7 @@ void MPICommon::LoadQueryResource(string &queries_filename,MasterResources &reso
 	resources.query_list[chunk_id].data 
 		= new char[resources.query_list[chunk_id].size];
 	
-	ifstream in(queries_filename.c_str());
+	ifstream in(resources.query_filename.c_str());
 	in.seekg(resources.query_list[chunk_id].ptr);
 	in.read(resources.query_list[chunk_id].data,resources.query_list[chunk_id].size);
 	in.close();

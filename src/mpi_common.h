@@ -28,12 +28,13 @@ class MPICommon{
 	};
 	
 	struct MasterResources{
+		std::string query_filename;
 		std::vector<QueryResource> query_list;
 		
 	};
 
 	struct WorkerResources{
-		
+		std::vector<QueryResource> query_list;
 	};
 	
 	
@@ -49,7 +50,9 @@ class MPICommon{
 	void RunGPU(std::string &queries_filename,std::string &database_filename,
 				std::string &output_file,
 				AligningParameters &parameter,MPIParameter &mpi_parameter);
- private:
+	static void LoadQueryResource(MasterResources &resources, int chunk_id);
+	static void UnloadQueryResource(MasterResources &resources,int chunk_id);
+private:
 	
 	
 	void RunMaster(std::string &queries_filename,std::string &database_filename,
@@ -62,9 +65,8 @@ class MPICommon{
 	void SetupMasterResources(std::string &queries_filename, std::string &database_filename,
 							  MasterResources &resources, AligningParameters &parameter);
 	
-	void LoadQueryResource(std::string &queries_filename, MasterResources &resources,
-						   AligningParameters &parameter, int chunk_id);
-	void UnloadQueryResource(MasterResources &resources,int chunk_id);
+
+
 	bool BuildParameters(int argc,char *argv[],std::string &input_filename,
 						 std::string &database_filename,std::string &output_filename,
 						 AligningParameters &parameters);

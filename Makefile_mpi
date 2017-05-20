@@ -163,7 +163,9 @@ CPP_SRC=./ext/seg/src/seg.cpp \
 MPI_SRC=./src/mpi_main.cpp \
         ./src/align_main_mpi.cpp \
 	./src/aligner_mpi.cpp \
-	./src/mpi_common.cpp
+	./src/mpi_common.cpp \
+	./src/resource_deliverer.cpp
+
 
 CU_SRC=./src/aligner_gpu_data.cu \
 	./src/distance_calculator_gpu_ref_kernel.cu \
