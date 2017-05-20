@@ -35,9 +35,6 @@ AlignMainMPI::~AlignMainMPI() {
 
 int AlignMainMPI::Run(int argc, char* argv[],MPIParameter &mpi_parameter) {
 	Logger *logger = Logger::GetInstance();
-	stringstream ss;
-	ss<<"rank"<<mpi_parameter.rank<<" searching...";
-	logger->Log(ss.str());
 	
 	AlignerCommon::AligningCommonParameters parameters;
 	string queries_filename;
@@ -63,9 +60,9 @@ int AlignMainMPI::Run(int argc, char* argv[],MPIParameter &mpi_parameter) {
 							 parameters,mpi_parameter);
 		}
 #endif
-		
-		ss<<"rank"<<mpi_parameter.rank<<"finished";
-		logger->Log(ss.str());
+		//stringstream ss;
+		//ss<<"rank"<<mpi_parameter.rank<<"finished";
+		//logger->Log(ss.str());
 		return 0;
 	}
 

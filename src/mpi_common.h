@@ -7,18 +7,22 @@
 #ifndef MPI_COMMON_H_
 #define MPI_COMMON_H_
 
-#include"aligner_common.h"
-#include<string>
-#include<fstream>
+#include "aligner_common.h"
+#include "resource_deliverer.h"
+#include "mpi_resource.h"
+#include <string>
+#include <fstream>
+
 class MPICommon{
  public:
 	struct MPIParameter{
 		int rank;
+		int size;
 		int loadedDatabaseChunk;
 		int loadedQueryBlock;
 		
 	};
-	
+	/*
 	struct QueryResource{
 		char *data;
 		int ptr;
@@ -37,10 +41,14 @@ class MPICommon{
 		std::vector<QueryResource> query_list;
 	};
 	
-	
+	*/
+	typedef MPIResource::QueryResource QueryResource;
+	typedef MPIResource::MasterResources MasterResources;
+	typedef MPIResource::WorkerResources WorkerResources;
 	
 	typedef AlignerCommon::AligningCommonParameters AligningParameters;
 	typedef AlignerCommon::Result Result;
+	
 	
 	void debug(int argc,char *argv[]);
 
@@ -63,13 +71,14 @@ private:
 	void RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter);
 	
 	void SetupMasterResources(std::string &queries_filename, std::string &database_filename,
-							  MasterResources &resources, AligningParameters &parameter);
+							  MasterResources &resources, AligningParameters &parameter,
+							  MPIParameter &mpi_parameter);
 	
-
+	void SetupWorkerResources(WorkerResources &resources);
 
 	bool BuildParameters(int argc,char *argv[],std::string &input_filename,
 						 std::string &database_filename,std::string &output_filename,
-						 AligningParameters &parameters);
+						 AligningParameters &par1ameters);
 	
 	void BuildQueryChunkPointers(std::string &queries_filename,
 								 std::vector<int> &chunk_pointer_list,

@@ -58,16 +58,16 @@ int mpi_main(int argc,char* argv[]){
 		
 		int ret=MPI::Init_thread(argc,argv,MPI_THREAD_MULTIPLE);
 		int rank = MPI::COMM_WORLD.Get_rank();
+#if 0 
 		cout<<"rank"<<rank<<":"<<ret<<":"<<MPI_THREAD_SERIALIZED<<endl;
-		
+#endif
+		int size= MPI::COMM_WORLD.Get_size();
 		MPICommon::MPIParameter mpi_parameter;
 		mpi_parameter.rank=rank;
+		mpi_parameter.size=size;
 		AlignMainMPI main;
-		if(rank==0){
-			ret=main.Run(argc-1,argv+1,mpi_parameter);
-		}else{
-			ret=0; //test : only rank0 do aln 
-		}
+		ret=main.Run(argc-1,argv+1,mpi_parameter);
+		
 		MPI::Finalize();
 			
 		}

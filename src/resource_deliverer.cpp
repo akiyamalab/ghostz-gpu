@@ -8,9 +8,16 @@
 #include "resource_deliverer.h"
 
 #include "mpi.h"
+#include "mpi_common.h"
+#include <iostream>
 #include <boost/thread.hpp>
 
+using namespace std;
 int ResourceDeliverer::RequestQuery(int chunk_id,WorkerResources &resources){
+#if 1
+	cout<<"send request"<<endl;
+#endif
+
 	if(resources.query_list[chunk_id].available){
 		return 0;
 	}
@@ -46,7 +53,7 @@ int ResourceDeliverer::RequestResource(char type, int chunk_id,WorkerResources &
 void ResourceDeliverer::CreateResponseThread(MasterResources &resources,int size){
 	ThreadParameter param;
 	param.resources=resources;
-	boost::thread_group threads;
+	//	boost::thread_group threads;
 	
 	for(int i=1;i<size;i++){
 		threads.create_thread(boost::bind(&ResponseThread, i, param));
@@ -54,6 +61,10 @@ void ResourceDeliverer::CreateResponseThread(MasterResources &resources,int size
 
 	
 }
+void ResourceDeliverer::DestoryResponseThread(){
+	threads.interrupt_all();
+}
+
 void ResourceDeliverer::ResponseThread(int thread_id,ThreadParameter &parameter){
 	int cmd[2];
 	int target;

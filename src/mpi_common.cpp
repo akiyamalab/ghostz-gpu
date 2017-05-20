@@ -4,31 +4,31 @@
  *  Author:goto
  */
 
-#include"mpi_common.h"
-#include"aligner_mpi.h"
-#include"fasta_sequence_reader.h"
-#include"protein_type.h"
-#include"dna_type.h"
-#include"sequence_type.h"
-#include"queries.h"
-#include"logger.h"
-#include"score_matrix_reader.h"
-#include"reduced_alphabet_file_reader.h"
+#include "mpi_common.h"
+#include "aligner_mpi.h"
+#include "fasta_sequence_reader.h"
+#include "protein_type.h"
+#include "dna_type.h"
+#include "sequence_type.h"
+#include "queries.h"
+#include "logger.h"
+#include "score_matrix_reader.h"
+#include "reduced_alphabet_file_reader.h"
+#include "resource_deliverer.h"
 
 
-#include"mpi.h"
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<sstream>
- using namespace std;
+#include "mpi.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 
-
+using namespace std;
 
 
 void MPICommon::debug(int argc,char *argv[]){
 	
-if(argc>=2){
+	if(argc>=2){
 		//cout<<argv[1]<<endl;
 	}
 	string input_file;
@@ -126,10 +126,11 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 						  string &output_filename,
 						  AligningParameters &parameter,MPIParameter &mpi_parameter){
+	cout<<"master start:"<<mpi_parameter.rank<<endl;
 	MasterResources resources;
 	resources.query_filename=queries_filename;
-	SetupMasterResources(queries_filename,database_filename,resources,parameter);
-#if 1
+	SetupMasterResources(queries_filename,database_filename,resources,parameter,mpi_parameter);
+#if 0
 	int i=0;
 	for(i=0;i<resources.query_list.size();i++){
 		cout<<resources.query_list[i].chunk_id;
@@ -137,12 +138,30 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		cout<<" size:"<<resources.query_list[i].size<<endl;;
 	}
 #endif
+	//init resource delivery thread
+	ResourceDeliverer deliverer;
 
+
+
+	MPI::COMM_WORLD.Barrier();
+	
+	LoadQueryResource(resources,0);
+
+	//finalize
+	deliverer.DestoryResponseThread();
 	
 	
 }
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter){
-
+	
+	cout<<"worker start:"<<mpi_parameter.rank<<endl;
+	WorkerResources resources;
+	//	ResourceDeliverer deliverer;
+	
+  
+	SetupWorkerResources(resources);
+	MPI::COMM_WORLD.Barrier();
+	//deliverer.RequestQuery(0,resources);
 }
 
 
@@ -151,7 +170,8 @@ void MPICommon::RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_par
 }
 
 void MPICommon::SetupMasterResources(string &queries_filename,string &database_filename,
-									 MasterResources &resources,AligningParameters &parameter){
+									 MasterResources &resources,AligningParameters &parameter,
+									 MPIParameter &mpi_parameter){//,ResourceDeliverer &deliverer){
 	
 	//init query resource
 	vector<int> pointer_list;
@@ -170,8 +190,36 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 
 
 	//init database resource
+	
 
-}					  
+	//init worker process
+	int size[2];
+	size[0]=resources.query_list.size();
+	size[1]=1; //database chunk size;
+	MPI::COMM_WORLD.Bcast(size,2,MPI::INT,0);
+	
+	//deliverer.CreateResponseThread(resources,mpi_parameter.size);
+	
+}
+void MPICommon::SetupWorkerResources(WorkerResources &resources){
+	int query_chunk_size;
+	int database_chunk_size;
+	int buf[2];
+	MPI::COMM_WORLD.Bcast(buf,2,MPI::INT,0);
+	query_chunk_size=buf[0];
+	database_chunk_size=buf[1];
+	cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
+	//setup query
+	for(int i=0;i<query_chunk_size;i++){
+		QueryResource query;
+		query.chunk_id=i;
+		query.available=false;
+		resources.query_list.push_back(query);
+	}
+	//setup database
+	
+	
+}
 void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &chunk_pointer_list,
 										vector<int> &chunk_size_list,AligningParameters &parameter){
 	

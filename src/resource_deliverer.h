@@ -8,20 +8,22 @@
 #ifndef _RESOURCE_DELIVERER_H_
 #define _RESOURCE_DELIVERER_H_
 
-#include "mpi_common.h"
 
+#include "mpi_common.h"
+#include "mpi_resource.h"
 #include "mpi.h"
 #include <iostream>
 #include <boost/thread.hpp>
 
 
-class ResourceDeliverer {
- public :
-	typedef MPICommon::QueryResource QueryResource;
-	typedef MPICommon::MasterResources MasterResources;
-	typedef MPICommon::WorkerResources WorkerResources;
+class ResourceDeliverer{
+ public:
 	
 
+
+	typedef MPIResource::QueryResource QueryResource;
+	typedef MPIResource::MasterResources MasterResources;
+	typedef MPIResource::WorkerResources WorkerResources; 
 
 	//worker method
     int RequestQuery(int chunk_id,WorkerResources &resources);
@@ -30,8 +32,12 @@ class ResourceDeliverer {
 	
 	//master method
 	void CreateResponseThread(MasterResources &resources,int size);
+	void DestoryResponseThread();
+ private:
 	
- private :
+	
+
+	boost::thread_group threads;
 	struct ThreadParameter{
 		MasterResources resources;
 		boost::mutex *load;
