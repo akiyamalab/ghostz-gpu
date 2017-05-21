@@ -10,6 +10,8 @@
 #include "aligner_common.h"
 #include "resource_deliverer.h"
 #include "mpi_resource.h"
+
+#include "mpi.h"
 #include <string>
 #include <fstream>
 
@@ -45,6 +47,7 @@ class MPICommon{
 	typedef MPIResource::QueryResource QueryResource;
 	typedef MPIResource::MasterResources MasterResources;
 	typedef MPIResource::WorkerResources WorkerResources;
+	typedef MPIResource::AlignmentTask AlignmentTask;
 	
 	typedef AlignerCommon::AligningCommonParameters AligningParameters;
 	typedef AlignerCommon::Result Result;
@@ -75,6 +78,15 @@ private:
 							  MPIParameter &mpi_parameter);
 	
 	void SetupWorkerResources(WorkerResources &resources);
+
+	void AcceptCommand(MasterResources &resources);
+	void AcceptRequestQuery(int cmd[2], MasterResources &resources,MPI::Status &status);
+	void AcceptRequestDatabase(int cmd[2], MasterResources &resources,MPI::Status &status);
+	void AcceptRequestTask(int cmd[2], MasterResources &resources,MPI::Status &status);
+	
+	void UpdateTaskBalance(MasterResources &resources);
+	void GetNextTask(MasterResources &resources,int target,AlignmentTask &task);
+
 
 	bool BuildParameters(int argc,char *argv[],std::string &input_filename,
 						 std::string &database_filename,std::string &output_filename,

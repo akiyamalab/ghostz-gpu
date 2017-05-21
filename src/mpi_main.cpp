@@ -57,8 +57,15 @@ int mpi_main(int argc,char* argv[]){
 	if(strcmp(argv[1],"aln")==0){
 		
 		int ret=MPI::Init_thread(argc,argv,MPI_THREAD_MULTIPLE);
+		
+		/**
+		  for mvapich2 
+		int ret;
+		MPI_Init_thread(&argc,&argv,MPI_THREAD_MULTIPLE,&ret);
+		**/
+		
 		int rank = MPI::COMM_WORLD.Get_rank();
-#if 0 
+#if 1
 		cout<<"rank"<<rank<<":"<<ret<<":"<<MPI_THREAD_SERIALIZED<<endl;
 #endif
 		int size= MPI::COMM_WORLD.Get_size();

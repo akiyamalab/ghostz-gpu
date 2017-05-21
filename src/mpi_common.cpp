@@ -15,7 +15,7 @@
 #include "score_matrix_reader.h"
 #include "reduced_alphabet_file_reader.h"
 #include "resource_deliverer.h"
-
+#include "mpi_resource.h"
 
 #include "mpi.h"
 #include <iostream>
@@ -129,39 +129,50 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	cout<<"master start:"<<mpi_parameter.rank<<endl;
 	MasterResources resources;
 	resources.query_filename=queries_filename;
+	
 	SetupMasterResources(queries_filename,database_filename,resources,parameter,mpi_parameter);
 #if 0
-	int i=0;
-	for(i=0;i<resources.query_list.size();i++){
+	
+	for(int i=0;i<resources.query_list.size();i++){
 		cout<<resources.query_list[i].chunk_id;
 		cout<<" ptr:"<<resources.query_list[i].ptr;
-		cout<<" size:"<<resources.query_list[i].size<<endl;;
+		cout<<" size:"<<resources.query_list[i].size<<endl;
 	}
 #endif
 	//init resource delivery thread
-	ResourceDeliverer deliverer;
-
-
-
-	MPI::COMM_WORLD.Barrier();
 	
 	LoadQueryResource(resources,0);
-
-	//finalize
-	deliverer.DestoryResponseThread();
 	
+	
+	MPI::COMM_WORLD.Barrier();
+	//cout<<resources.query_list[0].data<<endl;
+	cout<<resources.query_list[0].available<<endl;									   
+	
+	for(int i=0;i<mpi_parameter.size-1;i++){
+		AcceptCommand(resources);
+	}
+	
+	
+	//finalize
+	MPI::COMM_WORLD.Barrier();	
 	
 }
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
-	//	ResourceDeliverer deliverer;
+	ResourceDeliverer deliverer;
 	
   
 	SetupWorkerResources(resources);
 	MPI::COMM_WORLD.Barrier();
-	//deliverer.RequestQuery(0,resources);
+
+	int ret=deliverer.RequestQuery(0,resources);
+	cout<<"resuest:"<<ret<<endl;
+	//finalize
+
+	
+	MPI::COMM_WORLD.Barrier();
 }
 
 
@@ -171,7 +182,7 @@ void MPICommon::RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_par
 
 void MPICommon::SetupMasterResources(string &queries_filename,string &database_filename,
 									 MasterResources &resources,AligningParameters &parameter,
-									 MPIParameter &mpi_parameter){//,ResourceDeliverer &deliverer){
+									 MPIParameter &mpi_parameter){
 	
 	//init query resource
 	vector<int> pointer_list;
@@ -190,6 +201,12 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 
 
 	//init database resource
+	
+
+	//init tasl pool
+	queue<AlignmentTask> task_queue;
+	
+	resources.task_pool.push_back(task_queue);
 	
 
 	//init worker process
@@ -217,6 +234,10 @@ void MPICommon::SetupWorkerResources(WorkerResources &resources){
 		resources.query_list.push_back(query);
 	}
 	//setup database
+	
+	
+	
+	
 	
 	
 }
@@ -270,7 +291,8 @@ void MPICommon::LoadQueryResource(MasterResources &resources,int chunk_id){
 	in.seekg(resources.query_list[chunk_id].ptr);
 	in.read(resources.query_list[chunk_id].data,resources.query_list[chunk_id].size);
 	in.close();
-		
+	resources.query_list[chunk_id].available=true;
+	cout<<"query_chunk:"<<chunk_id<<"loaded."<<endl;
 }
 void MPICommon::UnloadQueryResource(MasterResources &resources,int chunk_id){
 	if(chunk_id > resources.query_list.size()){
@@ -285,6 +307,65 @@ void MPICommon::UnloadQueryResource(MasterResources &resources,int chunk_id){
 	resources.query_list[chunk_id].available=false;
 	
 }
+
+void MPICommon::AcceptCommand(MasterResources &resources){
+	int cmd[2];
+	
+	MPI::Status status;
+	MPI::COMM_WORLD.Recv(&cmd,2,MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG,status);
+	
+	switch(cmd[0]){
+	case MPIResource::RequestQuery :
+		AcceptRequestQuery(cmd,resources,status);
+		break;
+	case MPIResource::RequestDatabase :
+		AcceptRequestDatabase(cmd,resources,status);
+		break;
+	case MPIResource::RequestTask :
+		AcceptRequestTask(cmd,resources,status);
+		break;
+	default :
+		break;
+	}
+	
+}
+
+void MPICommon::AcceptRequestQuery(int cmd[2],MasterResources &resources,MPI::Status &status){
+	int target_rank=status.Get_source();
+	int target_chunk=cmd[1];
+
+	if(resources.query_list[target_chunk].available==false){// target query not loaded
+		cmd[0]=MPIResource::NACK;
+		cout<<"NACK"<<endl;
+		MPI::COMM_WORLD.Send(cmd,2,MPI::INT,target_rank,0);
+		return ;
+	}
+	cmd[0]=MPIResource::ACK;
+	cmd[1]=resources.query_list[target_chunk].size;
+
+	MPI::COMM_WORLD.Send(cmd,2,MPI::INT,target_rank,0);
+	MPI::COMM_WORLD.Send(resources.query_list[target_chunk].data,cmd[1],MPI::CHAR,target_rank,0);
+	
+}
+void MPICommon::AcceptRequestDatabase(int cmd[2],MasterResources &resource,MPI::Status &status){
+
+}
+void MPICommon::AcceptRequestTask(int cmd[2],MasterResources &resource,MPI::Status &status){
+	
+}
+
+void MPICommon::UpdateTaskBalance(MasterResources &resources){
+}
+
+void MPICommon::GetNextTask(MasterResources &resources,int target,AlignmentTask &task){
+
+	
+	
+}
+
+
+
+
 
 
 

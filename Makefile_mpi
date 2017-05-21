@@ -12,6 +12,7 @@ BOOST_PATH ?= /usr/local/
 CUDA_TOOLKIT_PATH=/usr/apps.sp3/cuda/7.5
 BOOST_PATH=${BOOST_HOME}
 MPI_PATH=/usr/apps.sp3/mpi/openmpi/1.8.2/g4.3.4_cuda7.5
+#MPI_PATH=/usr/apps.sp3/mpi/mvapich2/2.0rc1/g4.3.4_cuda7.5
 
 #----------------------------------------------#
 # GPU environment settings               #

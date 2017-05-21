@@ -32,7 +32,7 @@ class ResourceDeliverer{
 	
 	//master method
 	void CreateResponseThread(MasterResources &resources,int size);
-	void DestoryResponseThread();
+	void DestroyResponseThread();
  private:
 	
 	
@@ -44,13 +44,6 @@ class ResourceDeliverer{
 		
 	};
 
-	enum Command{
-		CMD_RequestQuery,
-		CMD_RequestDatabase,
-		CMD_RequestTask,
-		ACK,
-		NACK
-	};
 
 	//worker
 	int RequestResource(char type, int chunk_id,WorkerResources &resources);
@@ -58,7 +51,8 @@ class ResourceDeliverer{
 	int RecvQuery(QueryResource &query);
 
 	
-	static void ResponseThread(int thread_id, ResourceDeliverer::ThreadParameter &parameter);
+	static void ResponseThread(int thread_id, ResourceDeliverer::ThreadParameter &parameter,
+							   MasterResources &resource);
 	int SendQuery(int target,QueryResource &query);
 	
   

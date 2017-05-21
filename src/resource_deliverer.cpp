@@ -22,15 +22,19 @@ int ResourceDeliverer::RequestQuery(int chunk_id,WorkerResources &resources){
 		return 0;
 	}
 	int cmd[2];
-	cmd[0]=CMD_RequestQuery;
+	cmd[0]=MPIResource::RequestQuery;
 	cmd[1]=chunk_id;
 	
 	MPI::COMM_WORLD.Send(cmd,2,MPI::INT,0,0);
 	MPI::COMM_WORLD.Recv(cmd,2,MPI::INT,0,0);
-	if(cmd[0]!=ACK){
+	cout<<cmd[0]<<":"<<cmd[1]<<endl;
+	if(cmd[0]!=MPIResource::ACK){
 		return 1;
 	}
+	cout<<"recv query size:"<<cmd[1]<<endl;
+	resources.query_list[chunk_id].size = cmd[1]; 
 	resources.query_list[chunk_id].data = new char[cmd[1]];
+	
 	MPI::COMM_WORLD.Recv(resources.query_list[chunk_id].data,cmd[1],MPI::CHAR,0,0);
 
 	
@@ -53,45 +57,47 @@ int ResourceDeliverer::RequestResource(char type, int chunk_id,WorkerResources &
 void ResourceDeliverer::CreateResponseThread(MasterResources &resources,int size){
 	ThreadParameter param;
 	param.resources=resources;
-	//	boost::thread_group threads;
+	//	boost::thread_group threads
 	
 	for(int i=1;i<size;i++){
-		threads.create_thread(boost::bind(&ResponseThread, i, param));
+		threads.create_thread(boost::bind(&ResponseThread, i, param,resources));
 	}
 
 	
 }
-void ResourceDeliverer::DestoryResponseThread(){
+void ResourceDeliverer::DestroyResponseThread(){
 	threads.interrupt_all();
 }
 
-void ResourceDeliverer::ResponseThread(int thread_id,ThreadParameter &parameter){
+void ResourceDeliverer::ResponseThread(int thread_id,ThreadParameter &parameter,MasterResources &resources){
 	int cmd[2];
 	int target;
 	MPI::COMM_WORLD.Recv(cmd,2,MPI::INT,thread_id,0);
 	
 	switch(cmd[0]){
-	case CMD_RequestQuery:
+	case MPIResource::RequestQuery:
 		target=cmd[1];
-		if(!parameter.resources.query_list[target].available){// target query not loaded
-			cmd[0]=NACK;
+		cout<<"target"<<target<<":"<<resources.query_list[target].data<<endl;
+		if(resources.query_list[target].available==false){// target query not loaded
+			cmd[0]=MPIResource::NACK;
+			cout<<resources.query_list[target].available<<"NACK"<<endl;
 			MPI::COMM_WORLD.Send(cmd,2,MPI::INT,thread_id,0);
 			break;
 		}
 
-		cmd[0]=ACK;
-		cmd[1]=parameter.resources.query_list[target].size;
+		cmd[0]=MPIResource::ACK;
+		cmd[1]=resources.query_list[target].size;
 		
 		MPI::COMM_WORLD.Send(cmd,2,MPI::INT,thread_id,0);
-		MPI::COMM_WORLD.Send(parameter.resources.query_list[target].data,cmd[1],MPI::CHAR,thread_id,0);
+		MPI::COMM_WORLD.Send(resources.query_list[target].data,cmd[1],MPI::CHAR,thread_id,0);
 	  
 		break;
 
-	case CMD_RequestDatabase:
+	case MPIResource::RequestDatabase:
 	  
 		break;
 
-	case CMD_RequestTask:
+	case MPIResource::RequestTask:
 	
 		break;
 	default:
