@@ -45,6 +45,8 @@ class MPICommon{
 	
 	*/
 	typedef MPIResource::QueryResource QueryResource;
+	typedef MPIResource::DatabaseResource DatabaseResource;
+	typedef MPIResource::DatabaseInfo DatabaseInfo;
 	typedef MPIResource::MasterResources MasterResources;
 	typedef MPIResource::WorkerResources WorkerResources;
 	typedef MPIResource::AlignmentTask AlignmentTask;
@@ -77,7 +79,7 @@ private:
 							  MasterResources &resources, AligningParameters &parameter,
 							  MPIParameter &mpi_parameter);
 	
-	void SetupWorkerResources(WorkerResources &resources);
+	void SetupWorkerResources(WorkerResources &resources,MPIParameter &mpi_parameter);
 
 	void AcceptCommand(MasterResources &resources);
 	void AcceptRequestQuery(int cmd[2], MasterResources &resources,MPI::Status &status);
@@ -87,7 +89,12 @@ private:
 	void UpdateTaskBalance(MasterResources &resources);
 	void GetNextTask(MasterResources &resources,int target,AlignmentTask &task);
 
+	
+	void LoadDatabaseResource(MasterResources &resources,int chunk_id);
+	void UnloadDatabaseResource(MasterResources &resources,int chunk_id);
+	void loadFileData(std::string filename, char **ptr,uint64_t *size);
 
+	
 	bool BuildParameters(int argc,char *argv[],std::string &input_filename,
 						 std::string &database_filename,std::string &output_filename,
 						 AligningParameters &par1ameters);

@@ -129,6 +129,8 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	cout<<"master start:"<<mpi_parameter.rank<<endl;
 	MasterResources resources;
 	resources.query_filename=queries_filename;
+	resources.database_filename=database_filename;
+	resources.output_filename;
 	
 	SetupMasterResources(queries_filename,database_filename,resources,parameter,mpi_parameter);
 #if 0
@@ -142,7 +144,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//init resource delivery thread
 	
 	LoadQueryResource(resources,0);
-	
+	LoadDatabaseResource(resources,0);
 	
 	MPI::COMM_WORLD.Barrier();
 	//cout<<resources.query_list[0].data<<endl;
@@ -164,11 +166,14 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	ResourceDeliverer deliverer;
 	
   
-	SetupWorkerResources(resources);
+	SetupWorkerResources(resources,mpi_parameter);
 	MPI::COMM_WORLD.Barrier();
+	int ret;
+	//ret=deliverer.RequestQuery(0,resources);
+	//cout<<"resuestQuery:"<<ret<<endl;
 
-	int ret=deliverer.RequestQuery(0,resources);
-	cout<<"resuest:"<<ret<<endl;
+	ret=deliverer.RequestDatabase(0,resources);
+	cout<<"resuestDatabase:"<<ret<<endl;
 	//finalize
 
 	
@@ -184,6 +189,17 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 									 MasterResources &resources,AligningParameters &parameter,
 									 MPIParameter &mpi_parameter){
 	
+	//init communicator;
+	
+	/*
+	resources.comm_list.push_back(MPI::COMM_SELF);
+	for(int i=1;i<mpi_parameter.size;i++){
+		resources.comm_list.push_back(MPI::COMM_WORLD.Split(0,0));
+		cout<<"comm size"<<resources.comm_list[i].Get_size()<<endl;
+		}*/
+
+	
+
 	//init query resource
 	vector<int> pointer_list;
 	vector<int> size_list;
@@ -201,27 +217,80 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 
 
 	//init database resource
+	string inf_file = resources.database_filename+".inf";
+	DatabaseInfo databaseinfo;
+	/*
+	int number_chunks;
+	uint32_t max_sequence_length;
+	uint64_t database_length;
+	uint64_t number_sequences;
+	AlphabetCoder::Code sequence_delimiter;
+	*/
+	
+	ifstream in;
+	in.open(inf_file.c_str(),ios::binary);
+	in.read((char *)&databaseinfo.number_chunks,sizeof(databaseinfo.number_chunks));
+	in.read((char *)&databaseinfo.max_sequence_length,sizeof(databaseinfo.max_sequence_length));
+	in.read((char *)&databaseinfo.database_length,sizeof(databaseinfo.database_length));
+	in.read((char *)&databaseinfo.number_sequences,sizeof(databaseinfo.number_sequences));
+	in.read((char *)&databaseinfo.sequence_delimiter,sizeof(databaseinfo.sequence_delimiter));
+	in.close();
+	
+	resources.databaseinfo=databaseinfo;
+	
+#if 1
+
+	cout<<"number database chunk:"<<databaseinfo.number_chunks<<endl;
+	//cout<<"number sequences:"<<number_sequences<<endl;
 	
 
-	//init tasl pool
+#endif
+	for(int i=0;i<databaseinfo.number_chunks;i++){
+		DatabaseResource database;
+		database.chunk_id=i;
+		database.available=false;
+		resources.database_list.push_back(database);
+	}
+	
+
+	
+	
+	//init task pool
 	queue<AlignmentTask> task_queue;
 	
 	resources.task_pool.push_back(task_queue);
 	
 
+	
+
 	//init worker process
 	int size[2];
 	size[0]=resources.query_list.size();
-	size[1]=1; //database chunk size;
+	size[1]=resources.database_list.size();
 	MPI::COMM_WORLD.Bcast(size,2,MPI::INT,0);
 	
 	//deliverer.CreateResponseThread(resources,mpi_parameter.size);
 	
 }
-void MPICommon::SetupWorkerResources(WorkerResources &resources){
+void MPICommon::SetupWorkerResources(WorkerResources &resources,MPIParameter &mpi_parameter){
 	int query_chunk_size;
 	int database_chunk_size;
 	int buf[2];
+	
+	//init communicator;
+	
+	/*
+	for(int i=1;i<mpi_parameter.size;i++){
+		if(i==mpi_parameter.rank){
+			resources.master_comm = MPI::COMM_WORLD.Split(0,i);
+			cout<<"worker comm:"<<resources.master_comm.Get_size()<<endl;
+			cout<<resources.master_comm<<endl;
+    		}
+		MPI::COMM_WORLD.Split(1,i);
+		
+	}
+	*/
+
 	MPI::COMM_WORLD.Bcast(buf,2,MPI::INT,0);
 	query_chunk_size=buf[0];
 	database_chunk_size=buf[1];
@@ -235,7 +304,12 @@ void MPICommon::SetupWorkerResources(WorkerResources &resources){
 	}
 	//setup database
 	
-	
+	for(int i=0;i<database_chunk_size;i++){
+		DatabaseResource database;
+		database.chunk_id=i;
+		database.available=false;
+		resources.database_list.push_back(database);
+	}
 	
 	
 	
@@ -308,6 +382,95 @@ void MPICommon::UnloadQueryResource(MasterResources &resources,int chunk_id){
 	
 }
 
+void MPICommon::LoadDatabaseResource(MasterResources &resources,int chunk_id){
+	if(chunk_id > resources.database_list.size()){
+		cerr<<"database chunk id error:"<<chunk_id<<endl;
+		MPI_Abort(MPI_COMM_WORLD,1);
+	}
+	if(resources.database_list[chunk_id].available){
+		return ;
+	}
+	stringstream ss;
+	//.inf
+	ss<<resources.database_filename<<"_"<<chunk_id<<".inf";
+	loadFileData(ss.str().c_str(),
+				 &(resources.database_list[chunk_id].inf),
+				 &(resources.database_list[chunk_id].inf_size));
+	for(int i=0;i<resources.database_list[chunk_id].inf_size;i++){
+		cout<<(int)resources.database_list[chunk_id].inf[i]<<" ";
+	}
+	cout<<"database inf.size"<<resources.database_list[chunk_id].inf_size<<endl;
+	//.nam
+	ss.str("");
+	ss<<resources.database_filename<<"_"<<chunk_id<<".nam";
+	loadFileData(ss.str().c_str(),
+				 &(resources.database_list[chunk_id].nam),
+				 &(resources.database_list[chunk_id].nam_size));
+	//.off
+	ss.str("");
+	ss<<resources.database_filename<<"_"<<chunk_id<<".off";
+	loadFileData(ss.str().c_str(),
+				 &(resources.database_list[chunk_id].off),
+				 &(resources.database_list[chunk_id].off_size));
+	//.seq
+	ss.str("");
+	ss<<resources.database_filename<<"_"<<chunk_id<<".seq";
+	loadFileData(ss.str().c_str(),
+				 &(resources.database_list[chunk_id].seq),
+				 &(resources.database_list[chunk_id].seq_size));
+	//.scp
+	ss.str("");
+	ss<<resources.database_filename<<"_"<<chunk_id<<".scp";
+	loadFileData(ss.str().c_str(),
+				 &(resources.database_list[chunk_id].scp),
+				 &(resources.database_list[chunk_id].scp_size));
+	//.sdp
+	ss.str("");
+	ss<<resources.database_filename<<"_"<<chunk_id<<".sdp";
+	loadFileData(ss.str().c_str(),
+				 &(resources.database_list[chunk_id].sdp),
+				 &(resources.database_list[chunk_id].sdp_size));
+	cout<<"database "<<ss.str()<<" size"<<resources.database_list[chunk_id].sdp_size<<endl;
+	resources.database_list[chunk_id].available=true;
+}
+void MPICommon::UnloadDatabaseResource(MasterResources &resources,int chunk_id){
+	if(chunk_id > resources.database_list.size()){
+		cerr<<"database chunk id error:"<<chunk_id<<endl;
+		MPI_Abort(MPI_COMM_WORLD,1);
+	}
+	if(!resources.database_list[chunk_id].available){
+		return ;
+	}
+	delete [] resources.database_list[chunk_id].inf;
+	delete [] resources.database_list[chunk_id].nam;
+	delete [] resources.database_list[chunk_id].off;
+	delete [] resources.database_list[chunk_id].seq;
+	delete [] resources.database_list[chunk_id].scp;
+	delete [] resources.database_list[chunk_id].sdp;
+	
+	resources.database_list[chunk_id].available=false;
+
+}
+
+void MPICommon::loadFileData(std::string filename,char **ptr,uint64_t *size){
+	ifstream in(filename.c_str());
+	uint64_t begin,end;
+	
+	in.seekg(0,ios::end);
+	end = in.tellg();
+	in.clear();
+	in.seekg(0,ios::beg);
+	begin=in.tellg();
+	*size=end-begin;
+	
+	*ptr = new char[*size];
+	
+	in.read(*ptr,*size);
+	in.close();
+
+}
+
+
 void MPICommon::AcceptCommand(MasterResources &resources){
 	int cmd[2];
 	
@@ -347,11 +510,68 @@ void MPICommon::AcceptRequestQuery(int cmd[2],MasterResources &resources,MPI::St
 	MPI::COMM_WORLD.Send(resources.query_list[target_chunk].data,cmd[1],MPI::CHAR,target_rank,0);
 	
 }
-void MPICommon::AcceptRequestDatabase(int cmd[2],MasterResources &resource,MPI::Status &status){
+void MPICommon::AcceptRequestDatabase(int cmd[2],MasterResources &resources,MPI::Status &status){
+	int target_rank=status.Get_source();
+	int target_chunk=cmd[1];
 
+	if(resources.database_list[target_chunk].available==false){
+		cmd[0]=MPIResource::NACK;
+		MPI::COMM_WORLD.Send(cmd,2,MPI::INT,target_rank,0);
+		return ;
+	}
+   
+	cmd[0]=MPIResource::ACK;
+
+		cout<<"acceptDatabase Send."<<endl;
+   
+	MPI::COMM_WORLD.Send(cmd,2,MPI::INT,target_rank,0);
+
+	
+	MPI::COMM_WORLD.Send((char *) &resources.database_list[target_chunk].inf_size,
+						  sizeof(&resources.database_list[target_chunk].inf_size),
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send((char *) &resources.database_list[target_chunk].nam_size,
+						  sizeof(&resources.database_list[target_chunk].nam_size),
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send((char *) &resources.database_list[target_chunk].off_size,
+						  sizeof(&resources.database_list[target_chunk].off_size),
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send((char *) &resources.database_list[target_chunk].seq_size,
+						  sizeof(&resources.database_list[target_chunk].seq_size),
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send((char *) &resources.database_list[target_chunk].scp_size,
+						  sizeof(&resources.database_list[target_chunk].scp_size),
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send((char *) &resources.database_list[target_chunk].sdp_size,
+						  sizeof(&resources.database_list[target_chunk].sdp_size),
+						  MPI::CHAR,target_rank,0);
+	//sources.comm_list[target_rank].Barrier();
+
+	MPI::COMM_WORLD.Send(resources.database_list[target_chunk].inf,
+						  resources.database_list[target_chunk].inf_size,
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send(resources.database_list[target_chunk].nam,
+						  resources.database_list[target_chunk].nam_size,
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send(resources.database_list[target_chunk].off,
+						  resources.database_list[target_chunk].off_size,
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send(resources.database_list[target_chunk].seq,
+						  resources.database_list[target_chunk].seq_size,
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send(resources.database_list[target_chunk].scp,
+						  resources.database_list[target_chunk].scp_size,
+						  MPI::CHAR,target_rank,0);
+	MPI::COMM_WORLD.Send(resources.database_list[target_chunk].sdp,
+						  resources.database_list[target_chunk].sdp_size,
+						  MPI::CHAR,target_rank,0);
+
+						  
+	
 }
 void MPICommon::AcceptRequestTask(int cmd[2],MasterResources &resource,MPI::Status &status){
-	
+	int target_rank=status.Get_source();
+
 }
 
 void MPICommon::UpdateTaskBalance(MasterResources &resources){

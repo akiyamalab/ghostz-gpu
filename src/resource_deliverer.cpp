@@ -45,6 +45,86 @@ int ResourceDeliverer::RequestQuery(int chunk_id,WorkerResources &resources){
 }
 
 int ResourceDeliverer::RequestDatabase(int chunk_id,WorkerResources &resources){
+	if(resources.database_list[chunk_id].available){
+		return 0;
+	}
+	int cmd[2];
+	cmd[0]=MPIResource::RequestDatabase;
+	cmd[1]=chunk_id;
+	
+	MPI::COMM_WORLD.Send(cmd,2,MPI::INT,0,0);
+	MPI::COMM_WORLD.Recv(cmd,2,MPI::INT,0,0);
+	if(cmd[0]!=MPIResource::ACK){
+		return 1;
+	}
+
+	MPI::Request req[6];
+	
+	//req[0]=
+		MPI::COMM_WORLD.Recv((char *)&resources.database_list[chunk_id].inf_size,
+						  sizeof(uint64_t),MPI::CHAR,0,0);
+		//req[1]=
+		MPI::COMM_WORLD.Recv((char *)&resources.database_list[chunk_id].nam_size,
+						  sizeof(uint64_t),MPI::CHAR,0,0);
+		//req[2]=
+		MPI::COMM_WORLD.Recv((char *)&resources.database_list[chunk_id].off_size,
+						  sizeof(uint64_t),MPI::CHAR,0,0);
+		//req[3]=
+		MPI::COMM_WORLD.Recv((char *)&resources.database_list[chunk_id].seq_size,
+						  sizeof(uint64_t),MPI::CHAR,0,0);
+		//req[4]=
+		MPI::COMM_WORLD.Recv((char *)&resources.database_list[chunk_id].scp_size,
+						  sizeof(uint64_t),MPI::CHAR,0,0);
+		//req[5]=
+		MPI::COMM_WORLD.Recv((char *)&resources.database_list[chunk_id].sdp_size,
+						  sizeof(uint64_t),MPI::CHAR,0,0);
+		/*
+	for(int i=0;i<6;i++){
+		req[i].Wait();
+	}*/
+		//	resources.master_comm.Barrier();
+	//cout<<"worker.requestdatabase ACK"<<endl;
+	resources.database_list[chunk_id].inf = 
+		new char[resources.database_list[chunk_id].inf_size];
+
+	resources.database_list[chunk_id].nam = 
+		new char[resources.database_list[chunk_id].nam_size];
+
+	resources.database_list[chunk_id].off = 
+		new char[resources.database_list[chunk_id].off_size];
+
+	resources.database_list[chunk_id].seq = 
+		new char[resources.database_list[chunk_id].seq_size];
+
+	resources.database_list[chunk_id].scp = 
+		new char[resources.database_list[chunk_id].scp_size];
+
+	resources.database_list[chunk_id].sdp = 
+		new char[resources.database_list[chunk_id].sdp_size];
+
+	//req[0]=
+		MPI::COMM_WORLD.Recv(resources.database_list[chunk_id].inf,
+						  resources.database_list[chunk_id].inf_size,MPI::CHAR,0,0);
+	//req[1]=
+		MPI::COMM_WORLD.Recv(resources.database_list[chunk_id].nam,
+						  resources.database_list[chunk_id].nam_size,MPI::CHAR,0,0);
+	//req[2]=
+		MPI::COMM_WORLD.Recv(resources.database_list[chunk_id].off,
+						  resources.database_list[chunk_id].off_size,MPI::CHAR,0,0);
+	//req[3]=
+		MPI::COMM_WORLD.Recv(resources.database_list[chunk_id].seq,
+						  resources.database_list[chunk_id].seq_size,MPI::CHAR,0,0);
+	//req[4]=
+		MPI::COMM_WORLD.Recv(resources.database_list[chunk_id].scp,
+						  resources.database_list[chunk_id].scp_size,MPI::CHAR,0,0);
+	//req[5]=
+		MPI::COMM_WORLD.Recv(resources.database_list[chunk_id].sdp,
+						  resources.database_list[chunk_id].sdp_size,MPI::CHAR,0,0);
+		/*
+	for(int i=0;i<6;i++){
+		req[i].Wait();
+		}*/
+	
 	return 0;
 }
 
