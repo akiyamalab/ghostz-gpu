@@ -65,15 +65,16 @@ class MPIResource{
 		
 		std::vector<std::queue<AlignmentTask> > task_pool; //size= number of database chunk 
 		std::vector<int> node_loading_database;            //size= number of (master+)worker node
-		std::vector<float> est_speed;                      //size= number of database chunk
+		std::vector<float> task_ratio;                      //size= number of database chunk
 		
 		std::vector<MPI::Intercomm> comm_list;
     };
     struct WorkerResources{
 		std::vector<QueryResource> query_list;
 		std::vector<DatabaseResource> database_list;
+		MPI::Intercomm subgroup_comm;
 		
-		MPI::Intercomm master_comm;
+		
     };
 	
 

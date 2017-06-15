@@ -126,11 +126,20 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 						  string &output_filename,
 						  AligningParameters &parameter,MPIParameter &mpi_parameter){
+	
+	//Master Process Init
 	cout<<"master start:"<<mpi_parameter.rank<<endl;
 	MasterResources resources;
 	resources.query_filename=queries_filename;
 	resources.database_filename=database_filename;
 	resources.output_filename;
+
+	
+	
+
+	//***********************//
+	//Start Init Phase
+
 	
 	SetupMasterResources(queries_filename,database_filename,resources,parameter,mpi_parameter);
 #if 0
@@ -141,19 +150,32 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		cout<<" size:"<<resources.query_list[i].size<<endl;
 	}
 #endif
-	//init resource delivery thread
+	
+	//Create Subgroup comm
+	for(int i=0;i<resources.database_list.size();i++){
+		MPI::COMM_WORLD.Split(1,0);
+	}
+	
+	
 	
 	LoadQueryResource(resources,0);
-	LoadDatabaseResource(resources,0);
-	
-	MPI::COMM_WORLD.Barrier();
 	//cout<<resources.query_list[0].data<<endl;
 	cout<<resources.query_list[0].available<<endl;									   
 	
+	/*
 	for(int i=0;i<mpi_parameter.size-1;i++){
 		AcceptCommand(resources);
-	}
+	}*/
+
+	//***********************//
+	//End Init Phase
+
+
+	//Start Search Phase 
 	
+	//End Search Phase
+	//***********************//
+	//Start Report Phase
 	
 	//finalize
 	MPI::COMM_WORLD.Barrier();	
@@ -161,22 +183,54 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 }
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
+	//Worker Process Init
 	cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
 	ResourceDeliverer deliverer;
+	//***********************//
+	//Start Init Phase
 	
-  
 	SetupWorkerResources(resources,mpi_parameter);
-	MPI::COMM_WORLD.Barrier();
-	int ret;
-	//ret=deliverer.RequestQuery(0,resources);
-	//cout<<"resuestQuery:"<<ret<<endl;
+	//Create subgroup comm
+	int rank=mpi_parameter.rank;
+	int db_chunk_size = resources.database_list.size();
+	bool submaster = false;
+	int target_chunk=(rank-1)%db_chunk_size;
+	if(target_chunk==rank-1){
+		submaster =true;
+	}
+	
+	for(int i=0;i<db_chunk_size;i++){
+		if(i==target_chunk){
+			if(submaster){
+				resources.subgroup_comm = MPI::COMM_WORLD.Split(0,0);
+			}else{
+				resources.subgroup_comm = MPI::COMM_WORLD.Split(0,rank);
+			}
+		}else{
+			MPI::COMM_WORLD.Split(1,rank);
+		}
+	}
+	
+	if(submaster){
+		//load db from filesystem
+	}
+	//Broadcast db to subgroup
+	
+	
+	//End Init Phase
+	//***********************//
+	//Start Search Phase
 
-	ret=deliverer.RequestDatabase(0,resources);
-	cout<<"resuestDatabase:"<<ret<<endl;
+	//End Search Phase
+	//***********************//
+	//Start Report Phase
+
+	//End Report Phase
+
+	
 	//finalize
 
-	
 	MPI::COMM_WORLD.Barrier();
 }
 
@@ -574,7 +628,21 @@ void MPICommon::AcceptRequestTask(int cmd[2],MasterResources &resource,MPI::Stat
 
 }
 
-void MPICommon::UpdateTaskBalance(MasterResources &resources){
+void MPICommon::UpdateTaskBalance(MasterResources &resources,MPIParameter &mpi_resource){
+	int mpi_size = mpi_resource.size;
+	int database_chunk = resources.database_list.size();
+	int *chunk_count = new int[database_chunk];
+
+	for(int i=0;i<database_chunk;i++){
+		chunk_count[i]=0;		
+	}
+	for(int i=0;i<resources.node_loading_database.size();i++){
+		
+	}
+    
+	
+
+
 }
 
 void MPICommon::GetNextTask(MasterResources &resources,int target,AlignmentTask &task){

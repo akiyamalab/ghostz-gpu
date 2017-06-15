@@ -86,7 +86,7 @@ private:
 	void AcceptRequestDatabase(int cmd[2], MasterResources &resources,MPI::Status &status);
 	void AcceptRequestTask(int cmd[2], MasterResources &resources,MPI::Status &status);
 	
-	void UpdateTaskBalance(MasterResources &resources);
+	void UpdateTaskBalance(MasterResources &resources, MPIParameter &mpi_parameter);
 	void GetNextTask(MasterResources &resources,int target,AlignmentTask &task);
 
 	
