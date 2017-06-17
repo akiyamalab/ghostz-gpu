@@ -20,6 +20,12 @@
 #include "seed_searcher.h"
 #include "seed_searcher_gpu.h"
 
+#ifdef F_MPI
+#include "mpi_resource.h"
+
+#endif
+
+
 template<typename TSeedSearcher>
 class Database {
 public:
@@ -52,13 +58,17 @@ public:
 	Database();
 	Database(std::string filename_prefix);
 	Database(std::istream &is, Parameters &parameters);
-
+	
 	bool Load(std::string filename_prefix);
 	bool Save(std::string filename_prefix);
 
 	bool SetChunk(int id);
 	void ResetChunk();
 	bool NextChunk();
+#ifdef F_MPI
+	Database(MPIResource::DatabaseResource &database_resource,MPIResource::DatabaseInfo &database_info);
+	bool SetChunk(MPIResource::DatabaseResource &database_resource);
+#endif
 
 	uint32_t GetNumberChunks() {
 		if (!setting_informations_) {
@@ -172,14 +182,19 @@ private:
 	int chunk_ids_[kNumberOfChunkIds];
 	std::vector<DatabaseChunkTypePtr> chunk_list_;
 	Sequence next_sequence_;
+	bool load_from_memory_flag_;
+#ifdef F_MPI
+	MPIResource::DatabaseResource database_resources;
+	
+#endif
 };
 
 template<typename TSeedSearcher>
 Database<TSeedSearcher>::Database(std::string filename_prefix) :
-		all_on_memory_flag_(false), saving_(false), setting_informations_(
-				false), filename_prefix_(filename_prefix), number_chunks_(0), max_sequence_length_(
-				0), database_length_(0), number_sequences_(0), sequence_delimiter_(
-				0), chunk_id_(-1), preload_chunk_id_(-1), next_sequence_("", "") {
+all_on_memory_flag_(false), saving_(false), setting_informations_(false), 
+	filename_prefix_(filename_prefix), number_chunks_(0), max_sequence_length_(0), 
+	database_length_(0), number_sequences_(0), sequence_delimiter_(0), chunk_id_(-1), 
+	preload_chunk_id_(-1), next_sequence_("", ""), load_from_memory_flag_(false) {
 	for (size_t i = 0; i < kNumberOfChunkIds; ++i) {
 		chunk_ids_[i] = i;
 	}
@@ -188,18 +203,54 @@ Database<TSeedSearcher>::Database(std::string filename_prefix) :
 
 template<typename TSeedSearcher>
 Database<TSeedSearcher>::Database(std::istream &is, Parameters &parameters) :
-		all_on_memory_flag_(false), saving_(false), setting_informations_(
-				false), parameters_(parameters), reader_(is), filename_prefix_(
-				""), number_chunks_(0), max_sequence_length_(0), database_length_(
-				0), number_sequences_(0), sequence_delimiter_(
-				parameters.sequence_delimiter), chunk_id_(-1), preload_chunk_id_(
-				-1), next_sequence_("", "") {
+all_on_memory_flag_(false), saving_(false), setting_informations_(false), 
+	parameters_(parameters), reader_(is), filename_prefix_(""), number_chunks_(0), 
+	max_sequence_length_(0), database_length_(0), number_sequences_(0), 
+	sequence_delimiter_(parameters.sequence_delimiter), chunk_id_(-1), 
+	preload_chunk_id_( -1), next_sequence_("", "") ,load_from_memory_flag_(false) {
 	for (size_t i = 0; i < kNumberOfChunkIds; ++i) {
 		chunk_ids_[i] = i;
 	}
 	BuildNextChunk();
 }
+#ifdef F_MPI
+template<typename TSeedSearcher>
+Database<TSeedSearcher>::Database(MPIResource::DatabaseResource &database_resource,MPIResource::DatabaseInfo &database_info):
+all_on_memory_flag_(false), saving_(false), setting_informations_(true),
+	next_sequence_("",""),load_from_memory_flag_(true)
+{
+	number_chunks_       = database_info.number_chunks;
+	max_sequence_length_ = database_info.max_sequence_length;
+	database_length_     = database_info.database_length;
+	number_sequences_    = database_info.number_sequences;
+	sequence_delimiter_  = database_info.sequence_delimiter;
+	chunk_id_ = database_resource.chunk_id;
+	for (size_t i = 0; i < kNumberOfChunkIds; ++i) {
+		chunk_ids_[i] = -1;
+	}
 
+	SetChunk(database_resource);
+	
+}
+template<typename TSeedSearcher>
+bool Database<TSeedSearcher>::SetChunk(MPIResource::DatabaseResource &database_resource){
+	all_on_memory_flag_=false;
+	saving_=true;
+	setting_informations_ = true;
+	chunk_list_.resize(kNumberOfChunkIds);
+	chunk_id_ = database_resource.chunk_id;
+	chunk_ids_[kUsedChunkId] = chunk_id_;
+	
+	if (!chunk_list_[chunk_ids_[kUsedChunkId]]) {
+		chunk_list_[chunk_ids_[kUsedChunkId]] =
+			DatabaseChunkTypePtr(new DatabaseChunkType);
+	}
+	chunk_list_[chunk_ids_[kUsedChunkId]]->Load(database_resource);
+	
+	
+}
+
+#endif
 template<typename TSeedSearcher>
 bool Database<TSeedSearcher>::Load(std::string filename_prefix) {
 	all_on_memory_flag_ = false;

@@ -60,7 +60,7 @@ class MPIResource{
 		
 		std::string database_filename;
 		std::vector<DatabaseResource> database_list;       //size= number pf database chunk
-		DatabaseInfo databaseinfo;
+		DatabaseInfo database_info;
 		std::string output_filename;
 		
 		std::vector<std::queue<AlignmentTask> > task_pool; //size= number of database chunk 
@@ -71,6 +71,8 @@ class MPIResource{
     };
     struct WorkerResources{
 		std::vector<QueryResource> query_list;
+		std::string database_filename;
+		DatabaseInfo database_info;
 		std::vector<DatabaseResource> database_list;
 		MPI::Intercomm subgroup_comm;
 		

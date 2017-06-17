@@ -17,6 +17,8 @@
 #include "resource_deliverer.h"
 #include "mpi_resource.h"
 
+
+
 #include "mpi.h"
 #include <iostream>
 #include <fstream>
@@ -156,11 +158,8 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		MPI::COMM_WORLD.Split(1,0);
 	}
 	
-	
-	
+		
 	LoadQueryResource(resources,0);
-	//cout<<resources.query_list[0].data<<endl;
-	cout<<resources.query_list[0].available<<endl;									   
 	
 	/*
 	for(int i=0;i<mpi_parameter.size-1;i++){
@@ -213,6 +212,13 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	}
 	
 	if(submaster){
+		LoadDatabaseResource(resources,0);
+		DatabaseType database(resources.database_list[0],resources.database_info);
+		std::string name=database.GetName(0);
+		uint32_t offset = database.GetOffset(0);
+		AlphabetCoder::Code *code = database.GetConcatenatedSequence();
+		
+		cout<<name<<":"<<offset<<":"<<code<<endl;
 		//load db from filesystem
 	}
 	//Broadcast db to subgroup
@@ -282,15 +288,31 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 	*/
 	
 	ifstream in;
+	int dbinfo_size[5]; 
+	dbinfo_size[0]=sizeof(databaseinfo.number_chunks);
+	dbinfo_size[1]=sizeof(databaseinfo.max_sequence_length);	
+	dbinfo_size[2]=sizeof(databaseinfo.database_length);
+	dbinfo_size[3]=sizeof(databaseinfo.number_sequences);
+	dbinfo_size[4]=sizeof(databaseinfo.sequence_delimiter);
+
 	in.open(inf_file.c_str(),ios::binary);
-	in.read((char *)&databaseinfo.number_chunks,sizeof(databaseinfo.number_chunks));
-	in.read((char *)&databaseinfo.max_sequence_length,sizeof(databaseinfo.max_sequence_length));
-	in.read((char *)&databaseinfo.database_length,sizeof(databaseinfo.database_length));
-	in.read((char *)&databaseinfo.number_sequences,sizeof(databaseinfo.number_sequences));
-	in.read((char *)&databaseinfo.sequence_delimiter,sizeof(databaseinfo.sequence_delimiter));
+	in.read((char *)&databaseinfo.number_chunks,dbinfo_size[0]);
+	in.read((char *)&databaseinfo.max_sequence_length,dbinfo_size[1]);
+	in.read((char *)&databaseinfo.database_length,dbinfo_size[2]);
+	in.read((char *)&databaseinfo.number_sequences,dbinfo_size[3]);
+	in.read((char *)&databaseinfo.sequence_delimiter,dbinfo_size[4]);
 	in.close();
 	
-	resources.databaseinfo=databaseinfo;
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.number_chunks,dbinfo_size[0],MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.max_sequence_length,dbinfo_size[1],MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.database_length,dbinfo_size[2],MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.number_sequences,dbinfo_size[3],MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.sequence_delimiter,dbinfo_size[4],MPI::CHAR,0);
+
+	
+
+	resources.database_info=databaseinfo;
+	
 	
 #if 1
 
@@ -318,19 +340,25 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 	
 
 	//init worker process
-	int size[2];
+	
+	int size[3];
 	size[0]=resources.query_list.size();
 	size[1]=resources.database_list.size();
-	MPI::COMM_WORLD.Bcast(size,2,MPI::INT,0);
-	
+	size[2]=sizeof(database_filename.c_str());
+	MPI::COMM_WORLD.Bcast(size,3,MPI::INT,0);
+	MPI::COMM_WORLD.Bcast((char *)database_filename.c_str(),size[2],MPI::CHAR,0);
 	//deliverer.CreateResponseThread(resources,mpi_parameter.size);
+	//int dbinfo_size[5];
+	//MPI::Bcast(dbinfo_size,5,MPI::INT,0);
+	
 	
 }
 void MPICommon::SetupWorkerResources(WorkerResources &resources,MPIParameter &mpi_parameter){
 	int query_chunk_size;
 	int database_chunk_size;
-	int buf[2];
-	
+	char* database_filename;
+	int buf[3];
+	DatabaseInfo databaseinfo;
 	//init communicator;
 	
 	/*
@@ -344,11 +372,23 @@ void MPICommon::SetupWorkerResources(WorkerResources &resources,MPIParameter &mp
 		
 	}
 	*/
+	
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.number_chunks,sizeof(databaseinfo.number_chunks),MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.max_sequence_length,sizeof(databaseinfo.max_sequence_length),MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.database_length,sizeof(databaseinfo.database_length),MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.number_sequences,sizeof(databaseinfo.number_sequences),MPI::CHAR,0);
+	MPI::COMM_WORLD.Bcast((char *)&databaseinfo.sequence_delimiter,sizeof(databaseinfo.sequence_delimiter),MPI::CHAR,0);
 
-	MPI::COMM_WORLD.Bcast(buf,2,MPI::INT,0);
+	
+	MPI::COMM_WORLD.Bcast(buf,3,MPI::INT,0);
 	query_chunk_size=buf[0];
 	database_chunk_size=buf[1];
-	cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
+	database_filename= new char[buf[2]];
+	MPI::COMM_WORLD.Bcast(database_filename,buf[2],MPI::CHAR,0);
+	resources.database_filename=string(database_filename);
+	resources.database_info=databaseinfo;
+	//cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
+	//cout<<"databasename:"<<resources.database_filename<<endl;
 	//setup query
 	for(int i=0;i<query_chunk_size;i++){
 		QueryResource query;
@@ -389,7 +429,7 @@ void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &ch
 			eof_flag=true;
 		   
 		}
-		
+	
 		int size=isf_ptr-begin;
 		char *array = new char[size];
 		isf.clear();
@@ -436,7 +476,7 @@ void MPICommon::UnloadQueryResource(MasterResources &resources,int chunk_id){
 	
 }
 
-void MPICommon::LoadDatabaseResource(MasterResources &resources,int chunk_id){
+void MPICommon::LoadDatabaseResource(WorkerResources &resources,int chunk_id){
 	if(chunk_id > resources.database_list.size()){
 		cerr<<"database chunk id error:"<<chunk_id<<endl;
 		MPI_Abort(MPI_COMM_WORLD,1);
@@ -484,10 +524,11 @@ void MPICommon::LoadDatabaseResource(MasterResources &resources,int chunk_id){
 	loadFileData(ss.str().c_str(),
 				 &(resources.database_list[chunk_id].sdp),
 				 &(resources.database_list[chunk_id].sdp_size));
+
 	cout<<"database "<<ss.str()<<" size"<<resources.database_list[chunk_id].sdp_size<<endl;
 	resources.database_list[chunk_id].available=true;
 }
-void MPICommon::UnloadDatabaseResource(MasterResources &resources,int chunk_id){
+void MPICommon::UnloadDatabaseResource(WorkerResources &resources,int chunk_id){
 	if(chunk_id > resources.database_list.size()){
 		cerr<<"database chunk id error:"<<chunk_id<<endl;
 		MPI_Abort(MPI_COMM_WORLD,1);

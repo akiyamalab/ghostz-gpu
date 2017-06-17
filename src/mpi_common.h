@@ -10,6 +10,8 @@
 #include "aligner_common.h"
 #include "resource_deliverer.h"
 #include "mpi_resource.h"
+#include "database.h"
+
 
 #include "mpi.h"
 #include <string>
@@ -53,6 +55,7 @@ class MPICommon{
 	
 	typedef AlignerCommon::AligningCommonParameters AligningParameters;
 	typedef AlignerCommon::Result Result;
+	typedef Database<SeedSearcher> DatabaseType;
 	
 	
 	void debug(int argc,char *argv[]);
@@ -90,8 +93,8 @@ private:
 	void GetNextTask(MasterResources &resources,int target,AlignmentTask &task);
 
 	
-	void LoadDatabaseResource(MasterResources &resources,int chunk_id);
-	void UnloadDatabaseResource(MasterResources &resources,int chunk_id);
+	void LoadDatabaseResource(WorkerResources &resources,int chunk_id);
+	void UnloadDatabaseResource(WorkerResources &resources,int chunk_id);
 	void loadFileData(std::string filename, char **ptr,uint64_t *size);
 
 	
