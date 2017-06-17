@@ -165,7 +165,8 @@ MPI_SRC=./src/mpi_main.cpp \
         ./src/align_main_mpi.cpp \
 	./src/aligner_mpi.cpp \
 	./src/mpi_common.cpp \
-	./src/resource_deliverer.cpp
+	./src/resource_deliverer.cpp \
+	./src/mpi_resource.cpp
 
 
 CU_SRC=./src/aligner_gpu_data.cu \

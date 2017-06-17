@@ -16,7 +16,7 @@
 #include "reduced_alphabet_file_reader.h"
 #include "resource_deliverer.h"
 #include "mpi_resource.h"
-
+#include  "aligner_mpi.h"
 
 
 #include "mpi.h"
@@ -144,7 +144,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 
 	
 	SetupMasterResources(queries_filename,database_filename,resources,parameter,mpi_parameter);
-#if 0
+#if 1
 	
 	for(int i=0;i<resources.query_list.size();i++){
 		cout<<resources.query_list[i].chunk_id;
@@ -213,10 +213,13 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	if(submaster){
 		//load db from filesystem
 		LoadDatabaseResource(resources,target_chunk);
+
 	}
 	//Broadcast db to subgroup
 	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
-	DatabaseType database(resources.database_list[target_chunk],resource.database_info);
+	
+	DatabaseType database(resources.database_list[target_chunk],resources.database_info);
+	
 
 	//End Init Phase
 	//***********************//
@@ -229,9 +232,12 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		deliverer.RequestQuery(task.query_chunk,resources);
 	}
 	
+	AlignerMPI aligner;
+	vector<vector<Result> > result_list;
 	
+	//	aligner.Search(resources.query_list[task.query_chunk],database,result_list,parameter,mpi_parameter);
 	
-	
+	//	cout<<result_list.size()<<endl;
 	
 	//End Search Phase
 	//***********************//
@@ -495,6 +501,7 @@ void MPICommon::LoadDatabaseResource(WorkerResources &resources,int chunk_id){
 	loadFileData(ss.str().c_str(),
 				 &(resources.database_list[chunk_id].inf),
 				 &(resources.database_list[chunk_id].inf_size));
+
 	//.nam
 	ss.str("");
 	ss<<resources.database_filename<<"_"<<chunk_id<<".nam";
@@ -549,18 +556,19 @@ void MPICommon::UnloadDatabaseResource(WorkerResources &resources,int chunk_id){
 void MPICommon::loadFileData(std::string filename,char **ptr,uint64_t *size){
 	ifstream in(filename.c_str());
 	uint64_t begin,end;
-	
+	int size_;
 	in.seekg(0,ios::end);
 	end = in.tellg();
 	in.clear();
 	in.seekg(0,ios::beg);
 	begin=in.tellg();
-	*size=end-begin;
+	size_=end-begin;
 	
-	*ptr = new char[*size];
-	
-	in.read(*ptr,*size);
+	*ptr = new char[size_];
+	//cout<<filename<<" size:"<<size_<<endl;	
+	in.read(*ptr,size_);
 	in.close();
+	*size=size_;
 
 }
 
