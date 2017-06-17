@@ -65,7 +65,9 @@ int mpi_main(int argc,char* argv[]){
 		**/
 		
 		int rank = MPI::COMM_WORLD.Get_rank();
-#if 1
+#if 0
+		//mpi SMP level check
+		//this app require MPI_THREAD_SERIALIZED
 		cout<<"rank"<<rank<<":"<<ret<<":"<<MPI_THREAD_SERIALIZED<<endl;
 #endif
 		int size= MPI::COMM_WORLD.Get_size();

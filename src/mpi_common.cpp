@@ -120,7 +120,7 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 				  parameter,mpi_parameter);
 	}else{
 		RunWorkerGPU(parameter,mpi_parameter);
-		}
+	}
 }
 
 
@@ -138,7 +138,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 
 	
 	
-
+	
 	//***********************//
 	//Start Init Phase
 
@@ -158,21 +158,20 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		MPI::COMM_WORLD.Split(1,0);
 	}
 	
-		
-	LoadQueryResource(resources,0);
+	for(int i=0;i<resources.query_list.size();i++){
+		LoadQueryResource(resources,i);
+	}   //loading all query on master memory
 	
-	/*
-	for(int i=0;i<mpi_parameter.size-1;i++){
-		AcceptCommand(resources);
-	}*/
+	
+	
 
-	//***********************//
 	//End Init Phase
-
-
+	//***********************//
 	//Start Search Phase 
-	
-	//End Search Phase
+		for(int i=0;i<mpi_parameter.size-1;i++){
+			AcceptCommand(resources);
+		}	
+		//End Search Phase
 	//***********************//
 	//Start Report Phase
 	
@@ -212,22 +211,28 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	}
 	
 	if(submaster){
-		LoadDatabaseResource(resources,0);
-		DatabaseType database(resources.database_list[0],resources.database_info);
-		std::string name=database.GetName(0);
-		uint32_t offset = database.GetOffset(0);
-		AlphabetCoder::Code *code = database.GetConcatenatedSequence();
-		
-		cout<<name<<":"<<offset<<":"<<code<<endl;
 		//load db from filesystem
+		LoadDatabaseResource(resources,target_chunk);
 	}
 	//Broadcast db to subgroup
-	
-	
+	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
+	DatabaseType database(resources.database_list[target_chunk],resource.database_info);
+
 	//End Init Phase
 	//***********************//
 	//Start Search Phase
-
+	AlignmentTask task;
+	task.query_chunk=0;
+	task.database_chunk=0;
+	
+	if(!resources.query_list[task.query_chunk].available){
+		deliverer.RequestQuery(task.query_chunk,resources);
+	}
+	
+	
+	
+	
+	
 	//End Search Phase
 	//***********************//
 	//Start Report Phase
@@ -490,10 +495,6 @@ void MPICommon::LoadDatabaseResource(WorkerResources &resources,int chunk_id){
 	loadFileData(ss.str().c_str(),
 				 &(resources.database_list[chunk_id].inf),
 				 &(resources.database_list[chunk_id].inf_size));
-	for(int i=0;i<resources.database_list[chunk_id].inf_size;i++){
-		cout<<(int)resources.database_list[chunk_id].inf[i]<<" ";
-	}
-	cout<<"database inf.size"<<resources.database_list[chunk_id].inf_size<<endl;
 	//.nam
 	ss.str("");
 	ss<<resources.database_filename<<"_"<<chunk_id<<".nam";
@@ -524,8 +525,6 @@ void MPICommon::LoadDatabaseResource(WorkerResources &resources,int chunk_id){
 	loadFileData(ss.str().c_str(),
 				 &(resources.database_list[chunk_id].sdp),
 				 &(resources.database_list[chunk_id].sdp_size));
-
-	cout<<"database "<<ss.str()<<" size"<<resources.database_list[chunk_id].sdp_size<<endl;
 	resources.database_list[chunk_id].available=true;
 }
 void MPICommon::UnloadDatabaseResource(WorkerResources &resources,int chunk_id){

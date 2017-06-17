@@ -48,6 +48,7 @@ Queries::Queries(istream &in, const Parameters &parameters) :
 	Next();
 }
 
+
 void Queries::Next() {
 	max_query_sequence_length_ = 0;
 	SetQueries();

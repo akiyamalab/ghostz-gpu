@@ -8,7 +8,11 @@
 #define _MPI_RESOURCE_H_
 
 #include <queue>
+#include <stdint.h>
 #include "mpi.h"
+
+#include "alphabet_coder.h"
+
 class MPIResource{
  public:
 	
@@ -87,7 +91,9 @@ class MPIResource{
         ACK,
         NACK
     };
-
+	
+	static int BcastDatabase(DatabaseResource &database, MPI::Intercomm comm, int root);
+	
 };
 
 
