@@ -386,7 +386,6 @@ bool DatabaseChunk<TSeedSearcher>::LoadInfomation(std::string filename_prefix) {
 		in.read((char *) &number_sequences_, sizeof(number_sequences_));
 		in.read((char *) &concatenated_sequences_length_,
 				sizeof(concatenated_sequences_length_));
-
 		in.close();
 		return true;
 	}
@@ -563,13 +562,15 @@ bool DatabaseChunk<TSeedSearcher>::Load(MPIResource::DatabaseResource &database_
 }
 template<typename TSeedSearcher>
 bool DatabaseChunk<TSeedSearcher>::LoadInfomation(MPIResource::DatabaseResource &database_resource){
-	std::istringstream in(database_resource.inf);
-
+	
+	std::stringstream in;
+	in.write(database_resource.inf,database_resource.inf_size);
 	if (in) {
 		in.read((char *) &number_sequences_, sizeof(number_sequences_));
 		in.read((char *) &concatenated_sequences_length_,
 				sizeof(concatenated_sequences_length_));
-			return true;
+		in.clear();
+		return true;
 	}
 	return false;
 		
@@ -577,11 +578,13 @@ bool DatabaseChunk<TSeedSearcher>::LoadInfomation(MPIResource::DatabaseResource 
 
 template<typename TSeedSearcher>
 bool DatabaseChunk<TSeedSearcher>::LoadOffsets(MPIResource::DatabaseResource &database_resource){
-	std::istringstream in(database_resource.off);
+	std::stringstream in;
+	in.write(database_resource.off,database_resource.off_size);
 	if (in) {
 		offsets_.resize(number_sequences_ + 1);
 		in.read((char *) &offsets_[0],
 				sizeof(offsets_[0]) * (number_sequences_ + 1));
+		in.clear();
 		return true;
 	}
 	return false;
@@ -591,7 +594,8 @@ bool DatabaseChunk<TSeedSearcher>::LoadOffsets(MPIResource::DatabaseResource &da
 template<typename TSeedSearcher>
 bool DatabaseChunk<TSeedSearcher>::LoadNames(MPIResource::DatabaseResource &database_resource){
 	std::string line;
-	std::istringstream in(database_resource.nam);
+	std::stringstream in;
+	in.write(database_resource.nam,database_resource.nam_size);
 	if (in) {
 		names_.resize(number_sequences_);
 		uint32_t i;
@@ -600,7 +604,7 @@ bool DatabaseChunk<TSeedSearcher>::LoadNames(MPIResource::DatabaseResource &data
 			names_[i] = line;
 		}
 		assert(i == number_sequences_);
-		
+		in.clear();
 		return true;
 	}
 	return false;
@@ -608,12 +612,16 @@ bool DatabaseChunk<TSeedSearcher>::LoadNames(MPIResource::DatabaseResource &data
 
 template<typename TSeedSearcher>
 bool DatabaseChunk<TSeedSearcher>::LoadConcatenatedSequence(MPIResource::DatabaseResource &database_resource){
-	std::istringstream in(database_resource.seq);
+
+	std::stringstream in;
+	in.write(database_resource.seq,database_resource.seq_size);
+
 	if (in) {
 		concatenated_sequence_.resize(concatenated_sequences_length_);
 		in.read((char *) &concatenated_sequence_[0],
 				sizeof(concatenated_sequence_[0])
 				* concatenated_sequences_length_);
+		in.clear();
 		return true;
 	}
 	return false;
@@ -622,11 +630,14 @@ bool DatabaseChunk<TSeedSearcher>::LoadConcatenatedSequence(MPIResource::Databas
 
 template<typename TSeedSearcher>
 bool DatabaseChunk<TSeedSearcher>::LoadSeedSearcherCommonParameters(MPIResource::DatabaseResource &database_resource){
-	std::istringstream in(database_resource.scp);
+	std::stringstream in;
+	in.write(database_resource.scp,database_resource.scp_size);
+	
 	if (in) {
 		seed_searcher_parameters_.BuildCommonParameters(in,	&seed_searcher_common_parameters_);
 		
 		setted_seed_searcher_common_parameters_ = true;
+		in.clear();
 		return true;
 	}
 	return false;
@@ -635,11 +646,14 @@ bool DatabaseChunk<TSeedSearcher>::LoadSeedSearcherCommonParameters(MPIResource:
 template<typename TSeedSearcher>
 bool DatabaseChunk<TSeedSearcher>::LoadSeedSearcherParameters(MPIResource::DatabaseResource &database_resource){
 	
-	std::istringstream in(database_resource.sdp);
+	std::stringstream in;
+	in.write(database_resource.sdp,database_resource.sdp_size);
+	
 	if (in) {
 		seed_searcher_parameters_.Build(GetConcatenatedSequence(),
 										GetConcatenatedSequenceLength(), in);
 		setted_seed_searcher_parameters_ = true;
+		in.clear();
 		return true;
 	}
 	return false;
