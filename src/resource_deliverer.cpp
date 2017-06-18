@@ -13,6 +13,7 @@
 #include <boost/thread.hpp>
 
 using namespace std;
+#if 0
 int ResourceDeliverer::RequestQuery(int chunk_id,WorkerResources &resources){
 
 
@@ -202,3 +203,4 @@ int ResourceDeliverer::SendQuery(int target,QueryResource &query){
 	
 	return 0;
 }
+#endif

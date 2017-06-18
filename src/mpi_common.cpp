@@ -14,7 +14,6 @@
 #include "logger.h"
 #include "score_matrix_reader.h"
 #include "reduced_alphabet_file_reader.h"
-#include "resource_deliverer.h"
 #include "mpi_resource.h"
 #include  "aligner_mpi.h"
 #include "aligner.h"
@@ -171,7 +170,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//***********************//
 	//Start Search Phase 
 		for(int i=0;i<mpi_parameter.size-1;i++){
-			AcceptCommand(resources);
+			MPIResource::AcceptCommand(resources);
 		}	
 		//End Search Phase
 	//***********************//
@@ -186,7 +185,6 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//Worker Process Init
 	//cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
-	ResourceDeliverer deliverer;
 	//***********************//
 	//Start Init Phase
 	
@@ -233,9 +231,12 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	task.query_chunk=0;
 	task.database_chunk=0;
 	
+	
 	if(!resources.query_list[task.query_chunk].available){
-		deliverer.RequestQuery(task.query_chunk,resources);
+		MPIResource::RequestQuery(resources,task.query_chunk);
 	}
+
+	
 	
 	AlignerMPI aligner;
 	Aligner aligner_;
@@ -589,13 +590,15 @@ void MPICommon::AcceptCommand(MasterResources &resources){
 	MPI::COMM_WORLD.Recv(&cmd,2,MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG,status);
 	
 	switch(cmd[0]){
-	case MPIResource::RequestQuery :
+	case MPIResource::CMD_RequestQuery :
+		// cmd[0] = RequestQuery cmd[1] = target_chunk
 		AcceptRequestQuery(cmd,resources,status);
+	  
 		break;
-	case MPIResource::RequestDatabase :
+	case MPIResource::CMD_RequestDatabase :
 		AcceptRequestDatabase(cmd,resources,status);
 		break;
-	case MPIResource::RequestTask :
+	case MPIResource::CMD_RequestTask :
 		AcceptRequestTask(cmd,resources,status);
 		break;
 	default :

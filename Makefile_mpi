@@ -165,7 +165,6 @@ MPI_SRC=./src/mpi_main.cpp \
         ./src/align_main_mpi.cpp \
 	./src/aligner_mpi.cpp \
 	./src/mpi_common.cpp \
-	./src/resource_deliverer.cpp \
 	./src/mpi_resource.cpp \
 	./src/aligner_presearch_thread_mpi.cpp \
 	./src/aligner_build_results_thread_mpi.cpp 

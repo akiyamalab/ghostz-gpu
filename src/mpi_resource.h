@@ -24,7 +24,7 @@ class MPIResource{
 	struct QueryResource{
         char *data;
         int ptr;
-        int size;
+        uint64_t size;
         int chunk_id;
         bool available;
     };
@@ -85,14 +85,22 @@ class MPIResource{
 	
 
 	enum Command{
-        RequestQuery,
-        RequestDatabase,
-        RequestTask,
+        CMD_RequestQuery,
+        CMD_RequestDatabase,
+        CMD_RequestTask,
         ACK,
         NACK
     };
 	
 	static int BcastDatabase(DatabaseResource &database, MPI::Intercomm comm, int root);
+  
+	static int AcceptCommand(MasterResources &resources);
+	
+	static int RequestQuery(WorkerResources &resources,int target_chunk);
+	static int AcceptRequestQuery(MasterResources &resources,int target_chunk,int dst_rank);
+	
+	static int RecvQuery(QueryResource &query_resource, MPI::Intercomm comm,int src_rank);
+	static int SendQuery(QueryResource &query_resource, MPI::Intercomm comm,int dst_rank);
 	
 };
 
