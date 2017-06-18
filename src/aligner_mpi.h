@@ -5,8 +5,8 @@
  *      Author: goto
  */
 
-#ifndef ALIGNER_H_
-#define ALIGNER_H_
+#ifndef ALIGNER_MPI_H_
+#define ALIGNER_MPI_H_
 
 #include <string>
 #include <vector>
@@ -18,8 +18,10 @@
 #include "queries.h"
 #include "database.h"
 #include "aligner_common.h"
-#include "aligner_presearch_thread.h"
+#include "aligner_presearch_thread_mpi.h"
+#include "aligner_build_results_thread_mpi.h"
 #include "mpi_common.h"
+#include "mpi_resource.h"
 class AlignerMPI {
 public:
 	typedef AlignerPresearchThread::DatabaseType DatabaseType;
@@ -28,13 +30,15 @@ public:
 	typedef AlignerCommon::PresearchedResult PresearchedResult;
 	typedef AlignerCommon::Result Result;
 	typedef MPICommon::MPIParameter MPIParameter;
+	typedef MPIResource::QueryResource QueryResource;
+	
 	AlignerMPI() {
 	}
 	virtual ~AlignerMPI() {
 	}
 
-	void Search(Queries &queries, DatabaseType &database,
-				std::vector<std::vector<Result> > &result_list,
+	void Search(QueryResource &query_resource, DatabaseType &database,
+				std::vector<std::vector<Result> > &results_list,
 				AligningParameters &parameters,MPIParameter &mpi_parameter);
 
 private:
@@ -43,6 +47,8 @@ private:
 	typedef AlignerCommon::ResultGreaterScore ResultGreaterScore;
 	typedef AlignerCommon::AlignmentPosition AlignmentPosition;
 	typedef AlignerCommon::Coordinate Coordinate;
+
+	
 
 	void SetQueriesData(Queries &queries, AligningParameters &parameters,
 			std::vector<int> &ungapped_extension_cutoffs,

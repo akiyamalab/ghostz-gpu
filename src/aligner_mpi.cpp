@@ -32,12 +32,14 @@
 #include "seed_searcher_query_parameters.h"
 #include "reduced_alphabet_coder.h"
 #include "aligner_build_results_thread.h"
+#include "aligner_build_results_thread_mpi.h"
 #include "mpi_common.h"
 #include "aligner_common.h"
+#include "mpi_resource.h"
 using namespace std;
 
-void AlignerMPI::Search(Queries &queries,DatabaseType &database,
-						vector<vector<Result> > &result_list,
+void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
+						vector<vector<Result> > &results_list,
 						AligningParameters &parameters,MPIParameter &mpi_parameter){
 	Logger *logger = Logger::GetInstance();
 	
@@ -46,30 +48,50 @@ void AlignerMPI::Search(Queries &queries,DatabaseType &database,
 	AlignerCommon::BuildQueriesParameters(parameters, queries_parameters);
 	//DatabaseType database(database_filename);
 	//ofstream os(output_filename.c_str());
+	
 	stringstream ss;
-	/*
-	for (//Queries queries(queries_is, queries_parameters);
-		 ;	queries.GetNumberOfSequences() != 0; queries.Next()) {
+	//ifstream queries_is("/work1/t2ggenome/goto/work/ghostz/mpi/test/query/ERR315856.fasta_randN1k");
+	//stringstream queries_is(query_resource.data);
+	stringstream queries_is;
+	queries_is.write(query_resource.data,query_resource.size);
+	
+	
+
+
+	for (Queries queries(queries_is, queries_parameters);
+		 queries.GetNumberOfSequences() != 0; queries.Next()) {
 		ss.str("");
 		ss << "number queries is " << queries.GetNumberOfSequences();
 		logger->Log(ss.str());
 		vector<vector<AlignerMPI::PresearchedResult> > presearch_results_list(
 				queries.GetNumberOfSequences());
-		vector<vector<AlignerMPI::Result> > results_list(
-				queries.GetNumberOfSequences());
+		//vector<vector<AlignerMPI::Result> > 
+			results_list.resize(queries.GetNumberOfSequences());
 		logger->Log("start presearch");
 		Presearch(queries, database, parameters, presearch_results_list);
 		logger->Log("start build results");
-		BuildResults(queries, database, parameters, presearch_results_list,
-				results_list);
+		BuildResults(queries, database, parameters, presearch_results_list,	results_list);
 		ss.str("");
-		ss<<"rank"<<mpi_parameter->rank<<" search finish.";
+		int pre_hit_count=0;
+		for(int i=0;i<presearch_results_list.size();i++){
+			for(int j=0;j<presearch_results_list[i].size();j++){
+				pre_hit_count++;
+			}
+		}
+		int hit_count=0;
+		for(int i=0;i<results_list.size();i++){
+			for(int j=0;j<results_list[i].size();j++){
+				hit_count++;
+			}
+		}
+		
+		ss<<"rank"<<mpi_parameter.rank<<" search finish. #of result:"<<pre_hit_count<<"->"<<hit_count;
 		logger->Log(ss.str());
 		//logger->Log("write results" );
 		//WriteOutput(os, queries, database, parameters, results_list);
 		//return results_list;
-	} */
-	//queries_is.close();
+	} 
+	queries_is.clear();
 	//os.close();
 	return ;
 }
@@ -136,7 +158,7 @@ void AlignerMPI::BuildDatabaseParameters(DatabaseParameters &parameters,
 void AlignerMPI::Presearch(Queries &queries, DatabaseType &database,
 		AligningParameters &parameters,
 		std::vector<std::vector<PresearchedResult> > &results_list) {
-	bool database_preload = true;
+	bool database_preload = false;
 	Statistics statistics(*(parameters.aligning_sequence_type_ptr));
 	Statistics::KarlinParameters gapped_karlin_parameters;
 	statistics.CalculateGappedKarlinParameters(parameters.score_matrix,
@@ -160,7 +182,6 @@ void AlignerMPI::Presearch(Queries &queries, DatabaseType &database,
 #if DEBUG
 	uint32_t total_gapped_extention_count = 0;
 #endif
-	database.ResetChunk();
 	boost::thread_group threads;
 	size_t number_presearch_threads = parameters.number_threads;
 	size_t number_all_threads = number_presearch_threads;
@@ -190,22 +211,22 @@ void AlignerMPI::Presearch(Queries &queries, DatabaseType &database,
 	shared_parameters.all_barrier = &all_barrier;
 
 	for (size_t i = 0; i < number_presearch_threads; ++i) {
-		AlignerPresearchThread t;
+		AlignerPresearchThreadMPI t;
 		AlignerPresearchThread::ThreadParameters p;
 		p.thread_id = i;
 		p.gapped_extension_cutoff = gapped_extension_cutoff;
 		p.shared_parameters = &shared_parameters;
-		threads.create_thread(boost::bind(&AlignerPresearchThread::Run, t, p));
+		threads.create_thread(boost::bind(&AlignerPresearchThreadMPI::Run, t, p));
 	}
 	if (database_preload) {
-		AlignerPresearchThread t;
+		AlignerPresearchThreadMPI t;
 		AlignerPresearchThread::ThreadParameters p;
 		p.thread_id = -1;
 		p.gpu_data_list_id = 0;
 		p.gapped_extension_cutoff = 0;
 		p.gpu_seeds_memory_size = 0;
 		p.shared_parameters = &shared_parameters;
-		threads.create_thread(boost::bind(&AlignerPresearchThread::Run, t, p));
+		threads.create_thread(boost::bind(&AlignerPresearchThreadMPI::Run, t, p));
 	}
 	threads.join_all();
 }
@@ -231,7 +252,7 @@ void AlignerMPI::BuildResults(Queries &queries, DatabaseType &database,
 		AligningParameters &parameters,
 		std::vector<std::vector<PresearchedResult> > &presearch_results_list,
 		std::vector<std::vector<Result> > &results_list) {
-	bool database_preload = true;
+	bool database_preload = false;
 	Statistics statistics(*(parameters.aligning_sequence_type_ptr));
 	Statistics::KarlinParameters gapped_karlin_parameters;
 	statistics.CalculateGappedKarlinParameters(parameters.score_matrix,
@@ -271,9 +292,10 @@ void AlignerMPI::BuildResults(Queries &queries, DatabaseType &database,
 	boost::barrier all_barrier(number_threads);
 	uint32_t next_result_ids_list_i = 0;
 	uint32_t next_query_id = 0;
+
 	for (size_t i = 0; i < parameters.number_threads; ++i) {
-		AlignerBuildResultsThread<DatabaseType> t;
-		AlignerBuildResultsThread<DatabaseType>::Parameters p;
+		AlignerBuildResultsThreadMPI<DatabaseType> t;
+		AlignerBuildResultsThreadMPI<DatabaseType>::Parameters p;
 		p.thread_id = i;
 		p.next_result_ids_list_i_mutex = &next_result_ids_list_i_mutex;
 		p.next_query_id_mutex = &next_query_id_mutex;
@@ -288,12 +310,12 @@ void AlignerMPI::BuildResults(Queries &queries, DatabaseType &database,
 		p.aligningParameters = &parameters;
 		p.all_barrier = &all_barrier;
 		threads.create_thread(
-				boost::bind(&AlignerBuildResultsThread<DatabaseType>::Run, t,
+				boost::bind(&AlignerBuildResultsThreadMPI<DatabaseType>::Run, t,
 						p));
 	}
 	if (database_preload) {
-		AlignerBuildResultsThread<DatabaseType> t;
-		AlignerBuildResultsThread<DatabaseType>::Parameters p;
+		AlignerBuildResultsThreadMPI<DatabaseType> t;
+		AlignerBuildResultsThreadMPI<DatabaseType>::Parameters p;
 		p.thread_id = -1;
 		p.next_result_ids_list_i_mutex = &next_result_ids_list_i_mutex;
 		p.next_query_id_mutex = &next_query_id_mutex;
@@ -308,7 +330,7 @@ void AlignerMPI::BuildResults(Queries &queries, DatabaseType &database,
 		p.aligningParameters = &parameters;
 		p.all_barrier = &all_barrier;
 		threads.create_thread(
-				boost::bind(&AlignerBuildResultsThread<DatabaseType>::Run, t,
+				boost::bind(&AlignerBuildResultsThreadMPI<DatabaseType>::Run, t,
 						p));
 	}
 	threads.join_all();

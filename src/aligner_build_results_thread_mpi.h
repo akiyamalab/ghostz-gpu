@@ -1,12 +1,12 @@
 /*
- * aligner_build_results_thread.h
+ * aligner_build_results_thread_mpi.h
  *
- *  Created on: Aug 11, 2014
- *      Author: shu
+ *  Created on: 2017/06/18
+ *      Author: goto
  */
 
-#ifndef ALIGNER_BUILD_RESULTS_THREAD_H_
-#define ALIGNER_BUILD_RESULTS_THREAD_H_
+#ifndef ALIGNER_BUILD_RESULTS_THREAD_MPI_H_
+#define ALIGNER_BUILD_RESULTS_THREAD_MPI_H_
 
 #include <boost/thread.hpp>
 #include <boost/thread/barrier.hpp>
@@ -17,7 +17,7 @@
 #include "gapped_extender.h"
 
 template<typename TDatabase>
-class AlignerBuildResultsThread {
+class AlignerBuildResultsThreadMPI {
 public:
 	typedef TDatabase Database;
 	struct Parameters {
@@ -35,8 +35,8 @@ public:
 		AlignerCommon::AligningCommonParameters *aligningParameters;
 		boost::barrier *all_barrier;
 	};
-	AlignerBuildResultsThread();
-	virtual ~AlignerBuildResultsThread();
+	AlignerBuildResultsThreadMPI();
+	virtual ~AlignerBuildResultsThreadMPI();
 
 	void Run(Parameters &parameters);
 
@@ -51,28 +51,28 @@ protected:
 };
 
 template<typename TDatabase>
-AlignerBuildResultsThread<TDatabase>::AlignerBuildResultsThread() :
+AlignerBuildResultsThreadMPI<TDatabase>::AlignerBuildResultsThreadMPI() :
 		parameters_(NULL) {
 
 }
 
 template<typename TDatabase>
-AlignerBuildResultsThread<TDatabase>::~AlignerBuildResultsThread() {
+AlignerBuildResultsThreadMPI<TDatabase>::~AlignerBuildResultsThreadMPI() {
 
 }
 
 template<typename TDatabase>
-void AlignerBuildResultsThread<TDatabase>::Run(Parameters &parameters) {
+void AlignerBuildResultsThreadMPI<TDatabase>::Run(Parameters &parameters) {
 	parameters_ = &parameters;
 	if (parameters_->thread_id == 0) {
-		parameters_->database->ResetChunk();
+		//parameters_->database->ResetChunk();
 		*(parameters_->next_query_id) = 0;
 	}
 
 	std::vector<uint32_t> result_ids_i_stack;
 	parameters_->all_barrier->wait();
-	while (parameters_->database->GetChunkId()
-			< (int) parameters_->database->GetNumberChunks()) {
+	//	while (parameters_->database->GetChunkId()
+	//	< (int) parameters_->database->GetNumberChunks()) {
 
 		if (parameters_->thread_id < 0) {
 			typename Database::PreloadTarget target = Database::kName
@@ -168,11 +168,11 @@ void AlignerBuildResultsThread<TDatabase>::Run(Parameters &parameters) {
 		}
 		parameters_->all_barrier->wait();
 		if (parameters_->thread_id == 0) {
-			parameters_->database->NextChunk();
-			*(parameters_->next_result_ids_list_i) = 0;
+			//parameters_->database->NextChunk();
+			//*(parameters_->next_result_ids_list_i) = 0;
 		}
 		parameters_->all_barrier->wait();
-	}
+		//}
 
 	parameters_->all_barrier->wait();
 	std::vector<uint32_t> query_ids;
@@ -190,7 +190,7 @@ void AlignerBuildResultsThread<TDatabase>::Run(Parameters &parameters) {
 }
 
 template<typename TDatabase>
-int AlignerBuildResultsThread<TDatabase>::PopResultIdsI(size_t result_ids_list_size,
+int AlignerBuildResultsThreadMPI<TDatabase>::PopResultIdsI(size_t result_ids_list_size,
 		std::vector<uint32_t> *result_ids_i_stack) {
 	uint32_t start_id = 0;
 	uint32_t end_id = 0;
@@ -209,7 +209,7 @@ int AlignerBuildResultsThread<TDatabase>::PopResultIdsI(size_t result_ids_list_s
 }
 
 template<typename TDatabase>
-int AlignerBuildResultsThread<TDatabase>::PopQueryIds(size_t number_queries,
+int AlignerBuildResultsThreadMPI<TDatabase>::PopQueryIds(size_t number_queries,
 		std::vector<uint32_t> *query_ids) {
 	uint32_t start_id = 0;
 	uint32_t end_id = 0;

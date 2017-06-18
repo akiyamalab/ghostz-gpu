@@ -14,9 +14,7 @@
 
 using namespace std;
 int ResourceDeliverer::RequestQuery(int chunk_id,WorkerResources &resources){
-#if 1
-	cout<<"send request"<<endl;
-#endif
+
 
 	if(resources.query_list[chunk_id].available){
 		return 0;
@@ -27,11 +25,11 @@ int ResourceDeliverer::RequestQuery(int chunk_id,WorkerResources &resources){
 	
 	MPI::COMM_WORLD.Send(cmd,2,MPI::INT,0,0);
 	MPI::COMM_WORLD.Recv(cmd,2,MPI::INT,0,0);
-	cout<<cmd[0]<<":"<<cmd[1]<<endl;
+	//cout<<cmd[0]<<":"<<cmd[1]<<endl;
 	if(cmd[0]!=MPIResource::ACK){
 		return 1;
 	}
-	cout<<"recv query size:"<<cmd[1]<<endl;
+	//cout<<"recv query size:"<<cmd[1]<<endl;
 	resources.query_list[chunk_id].size = cmd[1]; 
 	resources.query_list[chunk_id].data = new char[cmd[1]];
 	

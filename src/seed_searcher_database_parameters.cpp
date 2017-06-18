@@ -351,6 +351,7 @@ int SeedSearcherDatabaseParameters::BuildCommonParameters(std::istream &is,
 			sizeof(common_parameters->sequence_delimiter));
 	is.read((char *) &common_parameters->subsequence_length,
 			sizeof(common_parameters->subsequence_length));
+	
 	size_t redueced_code_map_size = 0;
 	is.read((char *) &redueced_code_map_size, sizeof(redueced_code_map_size));
 	common_parameters->redueced_code_map.resize(redueced_code_map_size);

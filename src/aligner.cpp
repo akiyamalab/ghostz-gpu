@@ -83,6 +83,23 @@ void Aligner::Align(string &queries_filename, string &database_filename,
 		logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,
 				results_list);
+		
+		int pre_hit_count=0;
+        for(int i=0;i<presearch_results_list.size();i++){
+            for(int j=0;j<presearch_results_list[i].size();j++){
+                pre_hit_count++;
+            }
+        }
+        int hit_count=0;
+        for(int i=0;i<results_list.size();i++){
+            for(int j=0;j<results_list[i].size();j++){
+                hit_count++;
+            }
+        }
+		ss.str("");
+        ss<<"search finish. #of result:"<<pre_hit_count<<"->"<<hit_count;
+		logger->Log(ss.str());
+					 
 		logger->Log("write results" );
 		WriteOutput(os, queries, database, parameters, results_list);
 	}
@@ -173,7 +190,7 @@ void Aligner::Presearch(Queries &queries, DatabaseType &database,
 #if DEBUG
 	uint32_t total_gapped_extention_count = 0;
 #endif
-	database.ResetChunk();
+	//database.ResetChunk();
 	boost::thread_group threads;
 	size_t number_presearch_threads = parameters.number_threads;
 	size_t number_all_threads = number_presearch_threads;

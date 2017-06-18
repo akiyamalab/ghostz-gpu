@@ -17,7 +17,7 @@
 #include "resource_deliverer.h"
 #include "mpi_resource.h"
 #include  "aligner_mpi.h"
-
+#include "aligner.h"
 
 #include "mpi.h"
 #include <iostream>
@@ -130,7 +130,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 						  AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	//Master Process Init
-	cout<<"master start:"<<mpi_parameter.rank<<endl;
+	//cout<<"master start:"<<mpi_parameter.rank<<endl;
 	MasterResources resources;
 	resources.query_filename=queries_filename;
 	resources.database_filename=database_filename;
@@ -144,7 +144,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 
 	
 	SetupMasterResources(queries_filename,database_filename,resources,parameter,mpi_parameter);
-#if 1
+#if 0
 	
 	for(int i=0;i<resources.query_list.size();i++){
 		cout<<resources.query_list[i].chunk_id;
@@ -160,8 +160,10 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	
 	for(int i=0;i<resources.query_list.size();i++){
 		LoadQueryResource(resources,i);
+		
 	}   //loading all query on master memory
 	
+	//	cout<<resources.query_list[0].data;
 	
 	
 
@@ -182,7 +184,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	//Worker Process Init
-	cout<<"worker start:"<<mpi_parameter.rank<<endl;
+	//cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
 	ResourceDeliverer deliverer;
 	//***********************//
@@ -216,11 +218,14 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 
 	}
 	//Broadcast db to subgroup
+	uint64_t sum =0;
 	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
-	
-	DatabaseType database(resources.database_list[target_chunk],resources.database_info);
-	
 
+
+	DatabaseType database(resources.database_list[target_chunk],resources.database_info);
+	DatabaseType database_(resources.database_filename);
+	//cout<<"database.GetChunkId = "<<database.GetChunkId()<<endl;
+	
 	//End Init Phase
 	//***********************//
 	//Start Search Phase
@@ -233,12 +238,16 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	}
 	
 	AlignerMPI aligner;
-	vector<vector<Result> > result_list;
-	
-	//	aligner.Search(resources.query_list[task.query_chunk],database,result_list,parameter,mpi_parameter);
-	
-	//	cout<<result_list.size()<<endl;
-	
+	Aligner aligner_;
+	vector<vector<Result> > results_list;
+	string q_name=string("/work1/t2ggenome/goto/work/ghostz/mpi/test/query/ERR315856.fasta_randN1k");
+	string out_name = string("out");
+	aligner.Search(resources.query_list[task.query_chunk],database,results_list,parameter,mpi_parameter);
+	aligner_.Align(q_name,  resources.database_filename,out_name,parameter);
+	for(int i=0;i<results_list.size();i++){
+		for(int j=0;j<results_list[i].size();j++){
+			//cout<<results_list[i][j].subject_name<<endl;
+		}}
 	//End Search Phase
 	//***********************//
 	//Start Report Phase
@@ -325,7 +334,7 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 	resources.database_info=databaseinfo;
 	
 	
-#if 1
+#if 0
 
 	cout<<"number database chunk:"<<databaseinfo.number_chunks<<endl;
 	//cout<<"number sequences:"<<number_sequences<<endl;
@@ -471,7 +480,7 @@ void MPICommon::LoadQueryResource(MasterResources &resources,int chunk_id){
 	in.read(resources.query_list[chunk_id].data,resources.query_list[chunk_id].size);
 	in.close();
 	resources.query_list[chunk_id].available=true;
-	cout<<"query_chunk:"<<chunk_id<<"loaded."<<endl;
+	//cout<<"query_chunk:"<<chunk_id<<"loaded."<<endl;
 }
 void MPICommon::UnloadQueryResource(MasterResources &resources,int chunk_id){
 	if(chunk_id > resources.query_list.size()){

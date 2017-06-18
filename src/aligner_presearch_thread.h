@@ -55,7 +55,7 @@ public:
 	virtual ~AlignerPresearchThread();
 	void Run(ThreadParameters& thread_parameters);
 
-private:
+protected:
 	typedef AlignerCommon::AlignmentPositionLessPosition AlignmentPositionLessPosition;
 	typedef AlignerCommon::PresearchedResultGreaterScore PresearchedResultGreaterScore;
 	typedef AlignerCommon::ResultGreaterScore ResultGreaterScore;
