@@ -7,8 +7,8 @@
 
 
 #include "mpi_resource.h"
-
-
+#include <fstream>
+#include <sstream>
 using namespace std;
 
 
@@ -36,6 +36,21 @@ int MPIResource::BcastDatabase(DatabaseResource &database,MPI::Intercomm comm,in
 	comm.Bcast(database.sdp,database.sdp_size,MPI::CHAR,0);
 	
 	return 0;
+}
+
+int MPIResource::BcastDatabaseInfo(DatabaseInfo &info,MPI::Intercomm comm,int root){
+	comm.Bcast((char *)&info.number_chunks,
+			   sizeof(info.number_chunks),MPI::CHAR,root);
+	comm.Bcast((char *)&info.max_sequence_length,
+			   sizeof(info.max_sequence_length),MPI::CHAR,root);
+	comm.Bcast((char *)&info.database_length,
+			   sizeof(info.database_length),MPI::CHAR,root);
+	comm.Bcast((char *)&info.number_sequences,
+			   sizeof(info.number_sequences),MPI::CHAR,root);
+	comm.Bcast((char *)&info.sequence_delimiter,
+			   sizeof(info.sequence_delimiter),MPI::CHAR,root);
+	
+	
 }
 int MPIResource::AcceptCommand(MasterResources &resources){
 	int cmd[2];
@@ -91,4 +106,139 @@ int MPIResource::SendQuery(QueryResource &query_resource, MPI::Intercomm comm, i
 	comm.Send((char *) &(query_resource.size),sizeof(query_resource.size),MPI::CHAR,dst_rank,0);
 	comm.Send(query_resource.data,query_resource.size,MPI::CHAR,dst_rank,0);
 	return 0;
+}
+
+
+void MPIResource::LoadQueryResource(MasterResources &resources,int chunk_id){
+	
+    if(chunk_id > resources.query_list.size()){
+        cerr<<"query chunk id error:"<<chunk_id<<endl;
+        MPI_Abort(MPI_COMM_WORLD,1);
+    }
+    if(resources.query_list[chunk_id].available){
+        return ;
+    }
+    resources.query_list[chunk_id].data
+        = new char[resources.query_list[chunk_id].size];
+
+    ifstream in(resources.query_filename.c_str());
+    in.seekg(resources.query_list[chunk_id].ptr);
+    in.read(resources.query_list[chunk_id].data,resources.query_list[chunk_id].size);
+    in.close();
+    resources.query_list[chunk_id].available=true;
+    //cout<<"query_chunk:"<<chunk_id<<"loaded."<<endl;
+}
+
+void MPIResource::UnloadQueryResource(MasterResources &resources,int chunk_id){
+	if(chunk_id > resources.query_list.size()){
+        cerr<<"query chunk id error:"<<chunk_id<<endl;
+        MPI_Abort(MPI_COMM_WORLD,1);
+    }
+    if(!resources.query_list[chunk_id].available){
+        return ;
+    }
+
+    delete [] resources.query_list[chunk_id].data;
+    resources.query_list[chunk_id].available=false;
+
+}
+
+void MPIResource::LoadDatabaseInfo(DatabaseInfo &database_info,std::string database_info_filename){
+	ifstream in;
+	in.open(database_info_filename.c_str(),ios::binary);
+    in.read((char *)&database_info.number_chunks,
+			sizeof(database_info.number_chunks));
+    in.read((char *)&database_info.max_sequence_length,
+			sizeof(database_info.max_sequence_length));
+    in.read((char *)&database_info.database_length,
+			sizeof(database_info.database_length));
+    in.read((char *)&database_info.number_sequences,
+			sizeof(database_info.number_sequences));
+    in.read((char *)&database_info.sequence_delimiter,
+			sizeof(database_info.sequence_delimiter));
+    in.close();
+}
+void MPIResource::LoadDatabaseResource(WorkerResources &resources,int chunk_id){
+    if(chunk_id > resources.database_list.size()){
+        cerr<<"database chunk id error:"<<chunk_id<<endl;
+        MPI_Abort(MPI_COMM_WORLD,1);
+    }
+    if(resources.database_list[chunk_id].available){
+        return ;
+    }
+    stringstream ss;
+    //.inf
+    ss<<resources.database_filename<<"_"<<chunk_id<<".inf";
+    loadFileData(ss.str().c_str(),
+                 &(resources.database_list[chunk_id].inf),
+                 &(resources.database_list[chunk_id].inf_size));
+
+    //.nam
+    ss.str("");
+    ss<<resources.database_filename<<"_"<<chunk_id<<".nam";
+    loadFileData(ss.str().c_str(),
+                 &(resources.database_list[chunk_id].nam),
+                 &(resources.database_list[chunk_id].nam_size));
+    //.off
+    ss.str("");
+    ss<<resources.database_filename<<"_"<<chunk_id<<".off";
+    loadFileData(ss.str().c_str(),
+                 &(resources.database_list[chunk_id].off),
+                 &(resources.database_list[chunk_id].off_size));
+    //.seq
+    ss.str("");
+    ss<<resources.database_filename<<"_"<<chunk_id<<".seq";
+    loadFileData(ss.str().c_str(),
+                 &(resources.database_list[chunk_id].seq),
+                 &(resources.database_list[chunk_id].seq_size));
+    //.scp
+    ss.str("");
+    ss<<resources.database_filename<<"_"<<chunk_id<<".scp";
+    loadFileData(ss.str().c_str(),
+                 &(resources.database_list[chunk_id].scp),
+                 &(resources.database_list[chunk_id].scp_size));
+    //.sdp
+    ss.str("");
+    ss<<resources.database_filename<<"_"<<chunk_id<<".sdp";
+    loadFileData(ss.str().c_str(),
+                 &(resources.database_list[chunk_id].sdp),
+                 &(resources.database_list[chunk_id].sdp_size));
+    resources.database_list[chunk_id].available=true;
+}
+void MPIResource::UnloadDatabaseResource(WorkerResources &resources,int chunk_id){
+    if(chunk_id > resources.database_list.size()){
+        cerr<<"database chunk id error:"<<chunk_id<<endl;
+        MPI_Abort(MPI_COMM_WORLD,1);
+    }
+    if(!resources.database_list[chunk_id].available){
+        return ;
+    }
+    delete [] resources.database_list[chunk_id].inf;
+    delete [] resources.database_list[chunk_id].nam;
+    delete [] resources.database_list[chunk_id].off;
+    delete [] resources.database_list[chunk_id].seq;
+    delete [] resources.database_list[chunk_id].scp;
+    delete [] resources.database_list[chunk_id].sdp;
+
+    resources.database_list[chunk_id].available=false;
+
+}
+
+void MPIResource::loadFileData(std::string filename,char **ptr,uint64_t *size){
+    ifstream in(filename.c_str());
+    uint64_t begin,end;
+    int size_;
+    in.seekg(0,ios::end);
+    end = in.tellg();
+    in.clear();
+    in.seekg(0,ios::beg);
+    begin=in.tellg();
+    size_=end-begin;
+
+    *ptr = new char[size_];
+    //cout<<filename<<" size:"<<size_<<endl;
+    in.read(*ptr,size_);
+    in.close();
+    *size=size_;
+
 }

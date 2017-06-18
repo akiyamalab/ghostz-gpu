@@ -58,7 +58,6 @@ class MPICommon{
 	typedef Database<SeedSearcher> DatabaseType;
 	
 	
-	void debug(int argc,char *argv[]);
 
 	void Run(std::string &queries_filename, std::string &database_filename,
 			 std::string &output_filename,
@@ -84,29 +83,14 @@ private:
 	
 	void SetupWorkerResources(WorkerResources &resources,MPIParameter &mpi_parameter);
 
-	void AcceptCommand(MasterResources &resources);
-	void AcceptRequestQuery(int cmd[2], MasterResources &resources,MPI::Status &status);
-	void AcceptRequestDatabase(int cmd[2], MasterResources &resources,MPI::Status &status);
-	void AcceptRequestTask(int cmd[2], MasterResources &resources,MPI::Status &status);
 	
 	void UpdateTaskBalance(MasterResources &resources, MPIParameter &mpi_parameter);
 	void GetNextTask(MasterResources &resources,int target,AlignmentTask &task);
 
 	
-	void LoadDatabaseResource(WorkerResources &resources,int chunk_id);
-	void UnloadDatabaseResource(WorkerResources &resources,int chunk_id);
-	void loadFileData(std::string filename, char **ptr,uint64_t *size);
-
-	
-	bool BuildParameters(int argc,char *argv[],std::string &input_filename,
-						 std::string &database_filename,std::string &output_filename,
-						 AligningParameters &par1ameters);
-	
 	void BuildQueryChunkPointers(std::string &queries_filename,
 								 std::vector<int> &chunk_pointer_list,
 								 std::vector<int> &chunk_size_list,AligningParameters &parameter);
-	//	void RequestTask();
-	//void LoadResource();
 	
 	
 	

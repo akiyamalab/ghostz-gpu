@@ -42,7 +42,7 @@ int mpi_main(int argc,char* argv[]){
 		int rank = MPI::COMM_WORLD.Get_rank();
 		cout<<"test:rank"<<rank<<endl;
 		MPICommon common;
-		common.debug(argc-1,argv+1);
+		//common.debug(argc-1,argv+1);
 		
 		
 		MPI::Finalize();
