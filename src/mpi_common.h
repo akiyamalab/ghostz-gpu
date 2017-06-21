@@ -11,7 +11,7 @@
 #include "resource_deliverer.h"
 #include "mpi_resource.h"
 #include "database.h"
-
+#include "load_balancer.h"
 
 #include "mpi.h"
 #include <string>
@@ -68,8 +68,7 @@ class MPICommon{
 	static void LoadQueryResource(MasterResources &resources, int chunk_id);
 	static void UnloadQueryResource(MasterResources &resources,int chunk_id);
 private:
-	
-	
+	int count_terminate;
 	void RunMaster(std::string &queries_filename,std::string &database_filename,
 				   std::string &output_filename,
 				   AligningParameters &parameter,MPIParameter &mpi_parameter);
@@ -84,9 +83,8 @@ private:
 	void SetupWorkerResources(WorkerResources &resources,MPIParameter &mpi_parameter);
 
 	
-	void AcceptCommand(MasterResources &resources);
-	void GetNextTask(MasterResources &resources,int target,AlignmentTask &task);
-
+	void AcceptCommand(MasterResources &resources,LoadBalancer &balancer);
+	
 	
 	void BuildQueryChunkPointers(std::string &queries_filename,
 								 std::vector<int> &chunk_pointer_list,

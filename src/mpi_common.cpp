@@ -17,7 +17,6 @@
 #include "mpi_resource.h"
 #include  "aligner_mpi.h"
 #include "aligner.h"
-#include "load_balancer.h"
 
 #include "mpi.h"
 #include <iostream>
@@ -101,19 +100,31 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//***********************//
 	//Start Search Phase 
 	int task_remain=0;
-	LoadBalancer balancer(resources,mpi_parameter.size);
-	cout<<"dbchunk:"<<resources.database_list.size()<<endl;
+	/*LoadBalancer balancer(resources.query_list.size(),resources.database_list.size(),mpi_parameter.size);
 	for(int i=1;i<mpi_parameter.size;i++){
 		
 		balancer.SetDatabaseLoadingMap(i,(i-1)%resources.database_list.size());
-		cout<<"rank:"<<i<<"  db:"<<(i-1)%resources.database_list.size()<<endl;								   
-	}
-	cout<<balancer.GetSwitchTargetChunk(1)<<endl;
-	
-	
+ 		cout<<"rank:"<<i<<"  db:"<<(i-1)%resources.database_list.size()<<endl;								   
+		}*/
 
-	for(int i=0;i<mpi_parameter.size-1;i++){
-		//AcceptCommand(resources);
+	int num_q=6,num_d=3,num_p=4;
+	LoadBalancer balancer(num_q,num_d,num_p);
+	for(int i=1;i<num_p;i++){
+		balancer.SetDatabaseLoadingMap(i,(i-1)%(num_d));
+		
+		
+	}
+	cout<<"total task:"<<balancer.GetRemainTask()<<endl;
+	cout<<balancer.print()<<endl;
+	count_terminate=0;
+
+	for(;;){
+		AcceptCommand(resources,balancer);
+		if(count_terminate == mpi_parameter.size-1){
+			break;
+		}
+		cout<<balancer.print()<<endl;
+		
 	}	
 	//End Search Phase
 	//***********************//
@@ -171,14 +182,30 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//***********************//
 	//Start Search Phase
 	AlignmentTask task;
-	task.query_chunk=0;
-	task.database_chunk=0;
+	for(;;){
+		int task_query=0,task_db=0;
+		MPIResource::RequestTask(target_chunk,task);
+		task_query=task.query_chunk;
+		task_db=task.database_chunk;
 	
-	
-	if(!resources.query_list[task.query_chunk].available){
-		//MPIResource::RequestQuery(resources,task.query_chunk);
-	}
+		cout<<"rank:"<<rank<<" recv: "<<task_query<<","<<task_db<<endl;
 
+		if(task.query_chunk==-1){
+			cout<<"break rank:"<<rank<<endl;
+			break;
+		}
+		if(task.database_chunk!=target_chunk){
+			//Loadatabase
+			target_chunk=task.database_chunk;
+		}
+		/*
+		  if(!resources.query_list[task.query_chunk].available){
+		  MPIResource::RequestQuery(resources,task.query_chunk);
+		  }
+		*/
+		sleep(1);
+		
+	}
 	
 	
 	AlignerMPI aligner;
@@ -242,7 +269,7 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 	
 #if 1
 
-	cout<<"number database chunk:"<<databaseinfo.number_chunks<<endl;
+	cout<<"database chunk:"<<databaseinfo.number_chunks<<endl;
 	//cout<<"number sequences:"<<number_sequences<<endl;
 	
 
@@ -350,24 +377,38 @@ void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &ch
 }
 
 
-void MPICommon::AcceptCommand(MasterResources &resources){
-	int cmd[2];
+void MPICommon::AcceptCommand(MasterResources &resources,LoadBalancer &balancer){
+	int cmd;//(command,target_chunk;
+	int target;
 	int dst_rank;
-	dst_rank=MPIResource::AcceptCommand(resources,cmd);
-	
-    switch(cmd[0]){
+	dst_rank=MPIResource::AcceptCommand(resources,&cmd,&target);
+	//cout<<"cmd "<<cmd<<" "<<target<<" "<<MPIResource::CMD_RequestTask<<endl;
+    switch(cmd){
     case MPIResource::CMD_RequestQuery :
 
-        MPIResource::AcceptRequestQuery(resources,cmd[1],dst_rank);
+        MPIResource::AcceptRequestQuery(resources,target,dst_rank);
 
         break;
     case MPIResource::CMD_RequestDatabase :
         //AcceptRequestDatabase(cmd,resources,status);
         break;
     case MPIResource::CMD_RequestTask :
+
         AlignmentTask task;
-		
-        GetNextTask(resources,cmd[2],task);
+		if(balancer.GetRemainTask()==0){
+			task.query_chunk=-1;
+			task.database_chunk=-1;
+			count_terminate++;
+		}else{
+			task=balancer.GetNext(target);
+			
+			if(task.query_chunk==-1){//no more task in target_chunk;
+				int switch_target = balancer.GetSwitchTargetChunk();
+				balancer.SetDatabaseLoadingMap(dst_rank,switch_target);
+				task=balancer.GetNext(switch_target);
+			}
+		}
+		//cout<<task.query_chunk<<","<<task.database_chunk<<endl;
 		MPIResource::AcceptRequestTask(task,dst_rank);
         break;
     default :
@@ -376,11 +417,7 @@ void MPICommon::AcceptCommand(MasterResources &resources){
 
 	
 }
-void MPICommon::GetNextTask(MasterResources &resources,int target,AlignmentTask &task){
-	
-	
-	
-}
+
 
 
 

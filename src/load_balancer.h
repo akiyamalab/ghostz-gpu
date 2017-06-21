@@ -10,20 +10,24 @@
 #include "mpi_resource.h"
 #include <queue>
 #include <vector>
+#include <sstream>
 
 class LoadBalancer{
  public:
 	typedef MPIResource::AlignmentTask AlignmentTask;
 	typedef MPIResource::MasterResources MasterResources;
-	
-	LoadBalancer(MasterResources &resources,int num_process);
-	int GetSwitchTargetChunk(int worker_rank);
+	LoadBalancer(){
+	};
+	LoadBalancer(int n_query_chunk,int n_db_chunk,int n_process);
+	int GetSwitchTargetChunk();
 	void SetDatabaseLoadingMap(int worker_rank,int target_chunk);
-	AlignmentTask getNext(int target_chunk);
-	
-	
+	AlignmentTask GetNext(int target_chunk);
+	std::string print();
+	int GetRemainTask();
  private:
-	int db_chunk_;
+	int n_db_chunk_;
+	int n_query_chunk_;
+	int n_process_;
 	std::vector<std::queue<AlignmentTask> > queues;
 	MasterResources master_;
 	std::vector<int> db_map;

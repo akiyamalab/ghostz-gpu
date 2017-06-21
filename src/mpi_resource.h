@@ -13,6 +13,7 @@
 
 #include "alphabet_coder.h"
 
+#include "unistd.h"
 
 class MPIResource{
  public:
@@ -96,11 +97,11 @@ class MPIResource{
 	static int BcastDatabase(DatabaseResource &database, MPI::Intercomm comm, int root);
 	static int BcastDatabaseInfo(DatabaseInfo &info,MPI::Intercomm comm ,int root);
 	
-	static int AcceptCommand(MasterResources &resources,int cmd[2]);
+	static int AcceptCommand(MasterResources &resources,int *cmd,int *target);
 	
 	static int RequestQuery(WorkerResources &resources,int target_chunk);
 	static int AcceptRequestQuery(MasterResources &resources,int target_chunk,int dst_rank);
-	static AlignmentTask RequestTask(int target_chunk);
+	static void RequestTask(int target_chunk,MPIResource::AlignmentTask &task);
 	static int AcceptRequestTask(AlignmentTask task,int dst_rank);
 
 	

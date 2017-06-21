@@ -52,12 +52,14 @@ int MPIResource::BcastDatabaseInfo(DatabaseInfo &info,MPI::Intercomm comm,int ro
 	
 	
 }
-int MPIResource::AcceptCommand(MasterResources &resources, int cmd[2]){
-	//int cmd[2];
+int MPIResource::AcceptCommand(MasterResources &resources, int *cmd,int *target){
+	int buf[2];
 	MPI::Status status;
-	MPI::COMM_WORLD.Recv(&cmd,sizeof(cmd),MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG,status);
+	MPI::COMM_WORLD.Recv(buf,sizeof(buf),MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG,status);
 	
 	int dst_rank = status.Get_source();
+	*cmd=buf[0];
+	*target=buf[1];
 	return dst_rank;
 	
 	
@@ -80,17 +82,23 @@ int MPIResource::AcceptRequestQuery(MasterResources &resources, int target_chunk
 	return SendQuery(resources.query_list[target_chunk],MPI::COMM_WORLD,dst_rank);
 }
 
-MPIResource::AlignmentTask MPIResource::RequestTask(int target_chunk){
+void MPIResource::RequestTask(int target_chunk,MPIResource::AlignmentTask &task){
 	int cmd[2];
+	int cmd_[2];
 	cmd[0]=MPIResource::CMD_RequestTask;
 	cmd[1]=target_chunk;
-	MPI::COMM_WORLD.Send(cmd,sizeof(cmd),MPI::INT,0,0);
-	MPI::COMM_WORLD.Recv(cmd,sizeof(cmd),MPI::INT,0,0);
-	AlignmentTask task;
-	task.query_chunk=cmd[0];
-	task.database_chunk=cmd[1];
-	cout<<"q:"<<task.query_chunk<<"  d:"<<task.database_chunk<<endl;
 	
+	MPI::COMM_WORLD.Send(cmd,sizeof(cmd),MPI::INT,0,0);
+	
+	MPI::COMM_WORLD.Recv(cmd_,sizeof(cmd_),MPI::INT,0,0);
+	//cout<<"recv "<<cmd_[0]<<endl;	
+	task.query_chunk=cmd_[0];
+	task.database_chunk=cmd_[1];
+	//*task_query=0;
+	//*task_db=0; 
+	//cout<<"recv "<<task.query_chunk<<":"<<task.database_chunk<<endl;
+	//return task;
+	return ;
 }
 
 int MPIResource::AcceptRequestTask(AlignmentTask task, int dst_rank){
@@ -152,7 +160,7 @@ void MPIResource::UnloadQueryResource(MasterResources &resources,int chunk_id){
 
 void MPIResource::LoadDatabaseInfo(DatabaseInfo &database_info,std::string database_info_filename){
 	ifstream in;
-	in.open(database_info_filename.c_str(),ios::binary);
+	in.open(database_info_filename.c_str(),ios::binary);	
     in.read((char *)&database_info.number_chunks,
 			sizeof(database_info.number_chunks));
     in.read((char *)&database_info.max_sequence_length,
