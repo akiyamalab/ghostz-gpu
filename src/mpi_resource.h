@@ -13,13 +13,13 @@
 
 #include "alphabet_coder.h"
 
+
 class MPIResource{
  public:
-	
-	struct AlignmentTask{
-		int query_chunk;
-		int database_chunk;
-	};
+    struct AlignmentTask{
+        int query_chunk;
+        int database_chunk;
+    } ;
 	
 	struct QueryResource{
         char *data;
@@ -72,6 +72,7 @@ class MPIResource{
 		std::vector<float> task_ratio;                      //size= number of database chunk
 		
 		std::vector<MPI::Intercomm> comm_list;
+		
     };
     struct WorkerResources{
 		std::vector<QueryResource> query_list;
@@ -95,10 +96,13 @@ class MPIResource{
 	static int BcastDatabase(DatabaseResource &database, MPI::Intercomm comm, int root);
 	static int BcastDatabaseInfo(DatabaseInfo &info,MPI::Intercomm comm ,int root);
 	
-	static int AcceptCommand(MasterResources &resources);
+	static int AcceptCommand(MasterResources &resources,int cmd[2]);
 	
 	static int RequestQuery(WorkerResources &resources,int target_chunk);
 	static int AcceptRequestQuery(MasterResources &resources,int target_chunk,int dst_rank);
+	static AlignmentTask RequestTask(int target_chunk);
+	static int AcceptRequestTask(AlignmentTask task,int dst_rank);
+
 	
 	static int RecvQuery(QueryResource &query_resource, MPI::Intercomm comm,int src_rank);
 	static int SendQuery(QueryResource &query_resource, MPI::Intercomm comm,int dst_rank);

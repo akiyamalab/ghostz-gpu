@@ -84,7 +84,7 @@ private:
 	void SetupWorkerResources(WorkerResources &resources,MPIParameter &mpi_parameter);
 
 	
-	void UpdateTaskBalance(MasterResources &resources, MPIParameter &mpi_parameter);
+	void AcceptCommand(MasterResources &resources);
 	void GetNextTask(MasterResources &resources,int target,AlignmentTask &task);
 
 	

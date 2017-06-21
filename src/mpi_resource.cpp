@@ -52,28 +52,13 @@ int MPIResource::BcastDatabaseInfo(DatabaseInfo &info,MPI::Intercomm comm,int ro
 	
 	
 }
-int MPIResource::AcceptCommand(MasterResources &resources){
-	int cmd[2];
+int MPIResource::AcceptCommand(MasterResources &resources, int cmd[2]){
+	//int cmd[2];
 	MPI::Status status;
 	MPI::COMM_WORLD.Recv(&cmd,sizeof(cmd),MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG,status);
 	
 	int dst_rank = status.Get_source();
-	switch(cmd[0]){
-    case MPIResource::CMD_RequestQuery :
-		
-        AcceptRequestQuery(resources,cmd[1],dst_rank);
-
-        break;
-    case MPIResource::CMD_RequestDatabase :
-        //AcceptRequestDatabase(cmd,resources,status);
-        break;
-    case MPIResource::CMD_RequestTask :
-        //AcceptRequestTask(cmd,resources,status);
-        break;
-    default :
-        break;
-    }
-
+	return dst_rank;
 	
 	
 }
@@ -93,6 +78,28 @@ int MPIResource::RequestQuery(WorkerResources &resources, int target_chunk){
 
 int MPIResource::AcceptRequestQuery(MasterResources &resources, int target_chunk, int dst_rank){
 	return SendQuery(resources.query_list[target_chunk],MPI::COMM_WORLD,dst_rank);
+}
+
+MPIResource::AlignmentTask MPIResource::RequestTask(int target_chunk){
+	int cmd[2];
+	cmd[0]=MPIResource::CMD_RequestTask;
+	cmd[1]=target_chunk;
+	MPI::COMM_WORLD.Send(cmd,sizeof(cmd),MPI::INT,0,0);
+	MPI::COMM_WORLD.Recv(cmd,sizeof(cmd),MPI::INT,0,0);
+	AlignmentTask task;
+	task.query_chunk=cmd[0];
+	task.database_chunk=cmd[1];
+	cout<<"q:"<<task.query_chunk<<"  d:"<<task.database_chunk<<endl;
+	
+}
+
+int MPIResource::AcceptRequestTask(AlignmentTask task, int dst_rank){
+	int cmd[2];
+	cmd[0]=task.query_chunk;
+	cmd[1]=task.database_chunk;
+	MPI::COMM_WORLD.Send(cmd,sizeof(cmd),MPI::INT,dst_rank,0);
+	return 0;
+	
 }
 
 int MPIResource::RecvQuery(QueryResource &query_resource, MPI::Intercomm  comm, int src_rank){
