@@ -53,7 +53,8 @@ public:
 		return max_query_sequence_length_;
 	}
 	
-	std::ifstream::pos_type GetNextChunkPosition(std::istream &is);		
+	std::ifstream::pos_type GetNextChunkPosition(std::istream &is,
+												 std::ifstream::pos_type *chk_ptr);		
   
 	static uint32_t GetSequenceLength(
 		   std::tr1::shared_ptr<SequenceType> &file_sequence_type_ptr,

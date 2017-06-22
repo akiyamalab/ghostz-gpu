@@ -100,20 +100,22 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//***********************//
 	//Start Search Phase 
 	int task_remain=0;
-	/*LoadBalancer balancer(resources.query_list.size(),resources.database_list.size(),mpi_parameter.size);
+	LoadBalancer balancer(resources.query_list.size(),resources.database_list.size(),mpi_parameter.size);
 	for(int i=1;i<mpi_parameter.size;i++){
 		
 		balancer.SetDatabaseLoadingMap(i,(i-1)%resources.database_list.size());
  		cout<<"rank:"<<i<<"  db:"<<(i-1)%resources.database_list.size()<<endl;								   
-		}*/
-
+	}
+	/*
 	int num_q=6,num_d=3,num_p=4;
 	LoadBalancer balancer(num_q,num_d,num_p);
 	for(int i=1;i<num_p;i++){
 		balancer.SetDatabaseLoadingMap(i,(i-1)%(num_d));
 		
 		
-	}
+		}
+	*/
+	
 	cout<<"total task:"<<balancer.GetRemainTask()<<endl;
 	cout<<balancer.print()<<endl;
 	count_terminate=0;
@@ -123,7 +125,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		if(count_terminate == mpi_parameter.size-1){
 			break;
 		}
-		cout<<balancer.print()<<endl;
+		//		cout<<balancer.print()<<endl;
 		
 	}	
 	//End Search Phase
@@ -181,14 +183,16 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//End Init Phase
 	//***********************//
 	//Start Search Phase
+	AlignerMPI aligner;
 	AlignmentTask task;
+	vector<vector<Result> > results_list;
 	for(;;){
 		int task_query=0,task_db=0;
 		MPIResource::RequestTask(target_chunk,task);
 		task_query=task.query_chunk;
 		task_db=task.database_chunk;
 	
-		cout<<"rank:"<<rank<<" recv: "<<task_query<<","<<task_db<<endl;
+		//cout<<"rank:"<<rank<<" recv: "<<task_query<<","<<task_db<<endl;
 
 		if(task.query_chunk==-1){
 			cout<<"break rank:"<<rank<<endl;
@@ -198,22 +202,20 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 			//Loadatabase
 			target_chunk=task.database_chunk;
 		}
-		/*
-		  if(!resources.query_list[task.query_chunk].available){
-		  MPIResource::RequestQuery(resources,task.query_chunk);
-		  }
-		*/
-		sleep(1);
 		
+		if(!resources.query_list[task.query_chunk].available){
+			MPIResource::RequestQuery(resources,task.query_chunk);
+		}
+		aligner.Search(resources.query_list[task.query_chunk],database,results_list,parameter,mpi_parameter);
+		 
 	}
 	
 	
-	AlignerMPI aligner;
+	
 	Aligner aligner_;
-	vector<vector<Result> > results_list;
 	string q_name=string("/work1/t2ggenome/goto/work/ghostz/mpi/test/query/ERR315856.fasta_randN1k");
 	string out_name = string("out");
-	//aligner.Search(resources.query_list[task.query_chunk],database,results_list,parameter,mpi_parameter);
+	//
 	//	aligner_.Align(q_name,  resources.database_filename,out_name,parameter);
 	for(int i=0;i<results_list.size();i++){
 		for(int j=0;j<results_list[i].size();j++){
@@ -350,17 +352,21 @@ void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &ch
 	Queries queries(queries_parameters);
 
 	int i=0;
-	bool eof_flag=false;
-	while(!eof_flag){
+	bool flag=true;
+	std::ifstream::pos_type end_ptr;
+
+	while(flag){
 		ifstream::pos_type begin = isf.tellg();
-		ifstream::pos_type isf_ptr=queries.GetNextChunkPosition(isf);
-		if(isf_ptr==-1){
+		ifstream::pos_type isf_ptr;
+		flag=queries.GetNextChunkPosition(isf,&isf_ptr);
+		
+		/*if(isf_ptr==-1){
 			isf.clear();
 			isf.seekg(begin);
 			isf_ptr=isf.seekg(0,std::ios_base::end).tellg();
 			eof_flag=true;
 		   
-		}
+			}*/
 	
 		int size=isf_ptr-begin;
 		char *array = new char[size];

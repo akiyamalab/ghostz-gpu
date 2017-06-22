@@ -63,6 +63,7 @@ void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
 		ss.str("");
 		ss << "number queries is " << queries.GetNumberOfSequences();
 		logger->Log(ss.str());
+		
 		vector<vector<AlignerMPI::PresearchedResult> > presearch_results_list(
 				queries.GetNumberOfSequences());
 		//vector<vector<AlignerMPI::Result> > 
@@ -72,6 +73,12 @@ void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
 		logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,	results_list);
 		ss.str("");
+		
+		/*
+		  for(int i=0;i<queries.GetNumberOfSequences();i++){
+		  cout<<queries.GetQuery(i)->GetName()<<":"<<queries.GetQuery(i)->GetSequenceLength()<<endl;
+		  }
+		*/
 		int pre_hit_count=0;
 		for(int i=0;i<presearch_results_list.size();i++){
 			for(int j=0;j<presearch_results_list[i].size();j++){

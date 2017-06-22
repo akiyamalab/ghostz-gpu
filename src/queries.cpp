@@ -115,18 +115,22 @@ Queries::QueryPtr Queries::BuildQuery(Sequence &sequence,
 	return QueryPtr();
 }
 
-std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is){
+std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is, std::ifstream::pos_type *chk_ptr){
 	string name;
 	string sequence;
-	
+	std::ifstream::pos_type ptr,new_ptr;
 	bool reader_ret;
 	FastaSequenceReader reader(is);
-	unsigned int loaded_chunk_size;
+	unsigned int chunk_size = 0;
+	
+	ptr=is.tellg();
+	cout<<"ptr"<<is.tellg()<<endl;
+	
 	while(1){
 		size_t number_queries = 0;
 		size_t number_read_sequences = 0;
 		size_t queries_offset = 0;
-		if (loaded_chunk_size >= parameters_.chunk_size) {
+		if (chunk_size >= parameters_.chunk_size) {
 			break;
 		}
 		//queries_offset = parameters_.number_queries;
@@ -135,20 +139,26 @@ std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is){
 			 ++number_read_sequences) {
 			reader_ret = reader.Read(name,sequence);
 			if (!reader_ret) {
-				break;
+				*chk_ptr=ptr;
+				return false;
+				//break;
 			}
 			uint32_t new_sequence_length = 
 				GetSequenceLength(parameters_.file_sequence_type_ptr,
 								  parameters_.aligning_sequence_type_ptr,
 								  sequence.size());
-			loaded_chunk_size += new_sequence_length;
-			if (loaded_chunk_size
+			unsigned int new_chunk_size = chunk_size + new_sequence_length;
+		 	//cout<<new_chunk_size<<":"<<parameters_.chunk_size<<":"<<new_ptr<<":"<<is.end()<<endl;
+			new_ptr=is.tellg();
+			if (new_chunk_size
 				>= parameters_.chunk_size) {
 				break;
 			}
+			chunk_size=new_chunk_size;
+			ptr=new_ptr;
 			
 		}
-		if (loaded_chunk_size >= parameters_.chunk_size) {
+		if (chunk_size >= parameters_.chunk_size) {
 			number_queries = number_read_sequences;
 			++number_read_sequences;
 		} else {
@@ -162,8 +172,8 @@ std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is){
 
 	}
   
-  
-	return is.tellg();
+	*chk_ptr=ptr;
+	return true;
 
 
 }
