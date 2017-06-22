@@ -24,6 +24,13 @@
 #include <string>
 #include <sstream>
 
+#define F_TIMER
+#ifdef F_TIMER
+#include <sys/time.h>
+
+#endif
+
+
 using namespace std;
 
 
@@ -57,7 +64,12 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 						  string &output_filename,
 						  AligningParameters &parameter,MPIParameter &mpi_parameter){
-	
+#ifdef F_TIMER
+	struct timeval init_tv;
+	struct timeval tv;
+	gettimeofday(&init_tv,NULL);
+	float timer_second;
+#endif
 	//Master Process Init
 	//cout<<"master start:"<<mpi_parameter.rank<<endl;
 	MasterResources resources;
@@ -73,6 +85,11 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 
 	
 	SetupMasterResources(queries_filename,database_filename,resources,parameter,mpi_parameter);
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
+	printf("%.0f\t[ms]\tmaster: SetupResource\n",timer_second);
+#endif
 #if 0
 	
 	for(int i=0;i<resources.query_list.size();i++){
@@ -95,7 +112,11 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//	cout<<resources.query_list[0].data;
 	
 	
-
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
+	printf("%.0f\t[ms]\tmaster: Init Phase\n",timer_second);
+#endif
    //End Init Phase
 	//***********************//
 	//Start Search Phase 
@@ -125,7 +146,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		if(count_terminate == mpi_parameter.size-1){
 			break;
 		}
-		cout<<balancer.print()<<endl;
+		//		cout<<balancer.print()<<endl;
 		
 	}	
 	//End Search Phase
@@ -139,14 +160,23 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	//Worker Process Init
+#ifdef F_TIMER
+	struct timeval init_tv;
+	struct timeval tv;
+	gettimeofday(&init_tv,NULL);
+	float timer_second;
+#endif
+
 	//cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
+	int rank=mpi_parameter.rank;
 	//***********************//
 	//Start Init Phase
 	
 	SetupWorkerResources(resources,mpi_parameter);
+
 	//Create subgroup comm
-	int rank=mpi_parameter.rank;
+	
 	int db_chunk_size = resources.database_list.size();
 	bool submaster = false;
 	int target_chunk=(rank-1)%db_chunk_size;
@@ -179,7 +209,11 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	DatabaseType database(resources.database_list[target_chunk],resources.database_info);
 	DatabaseType database_(resources.database_filename);
 	//cout<<"database.GetChunkId = "<<database.GetChunkId()<<endl;
-	
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	printf("%.0f\t[ms]\trank:%d Init Phase\n",timer_second,rank);
+#endif
 	//End Init Phase
 	//***********************//
 	//Start Search Phase
@@ -210,7 +244,11 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 			MPIResource::RequestQuery(resources,task.query_chunk);
 		}
 		aligner.Search(resources.query_list[task.query_chunk],database,results_list,parameter,mpi_parameter);
-		 
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	printf("%.0f\t[ms]\trank:%d Search(%d,%d)\n",timer_second,rank,task_query,task_db);
+#endif
 	}
 	
 	
@@ -286,11 +324,6 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 		resources.database_list.push_back(database);
 	}
 	
-
-	
-	
-	
-
 	
 
 	//init worker process

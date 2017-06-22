@@ -124,8 +124,6 @@ std::ifstream::pos_type Queries::GetNextChunkPosition(std::istream &is, std::ifs
 	unsigned int chunk_size = 0;
 	
 	ptr=is.tellg();
-	cout<<"ptr"<<is.tellg()<<endl;
-	
 	while(1){
 		size_t number_queries = 0;
 		size_t number_read_sequences = 0;
