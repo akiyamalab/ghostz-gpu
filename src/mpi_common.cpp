@@ -104,7 +104,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	for(int i=1;i<mpi_parameter.size;i++){
 		
 		balancer.SetDatabaseLoadingMap(i,(i-1)%resources.database_list.size());
- 		cout<<"rank:"<<i<<"  db:"<<(i-1)%resources.database_list.size()<<endl;								   
+ 		//cout<<"rank:"<<i<<"  db:"<<(i-1)%resources.database_list.size()<<endl;								   
 	}
 	/*
 	int num_q=6,num_d=3,num_p=4;
@@ -125,7 +125,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		if(count_terminate == mpi_parameter.size-1){
 			break;
 		}
-		//		cout<<balancer.print()<<endl;
+		cout<<balancer.print()<<endl;
 		
 	}	
 	//End Search Phase
@@ -200,7 +200,10 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		}
 		if(task.database_chunk!=target_chunk){
 			//Loadatabase
+			MPIResource::UnloadDatabaseResource(resources,target_chunk);
 			target_chunk=task.database_chunk;
+			MPIResource::LoadDatabaseResource(resources,target_chunk);
+			database.SetChunk(resources.database_list[target_chunk]);
 		}
 		
 		if(!resources.query_list[task.query_chunk].available){
