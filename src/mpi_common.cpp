@@ -234,16 +234,20 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		}
 		if(task.database_chunk!=target_chunk){
 			//Loadatabase
+			cout<<"rank:"<<rank<<"unload db:"<<target_chunk<<endl;
 			MPIResource::UnloadDatabaseResource(resources,target_chunk);
 			target_chunk=task.database_chunk;
+			cout<<"rank:"<<rank<<"load db:"<<target_chunk<<endl;
 			MPIResource::LoadDatabaseResource(resources,target_chunk);
 			database.SetChunk(resources.database_list[target_chunk]);
+			cout<<"rank:"<<rank<<"end Loading."<<endl;
 		}
 		
 		if(!resources.query_list[task.query_chunk].available){
 			MPIResource::RequestQuery(resources,task.query_chunk);
 		}
 		aligner.Search(resources.query_list[task.query_chunk],database,results_list,parameter,mpi_parameter);
+		results_list.clear();
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
 	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
@@ -327,11 +331,12 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 	
 
 	//init worker process
-	
+	const char *filename = database_filename.c_str();
+	cout<<"master:"<<filename<<":size="<<sizeof(filename)<<endl;
 	int size[3];
 	size[0]=resources.query_list.size();
 	size[1]=resources.database_list.size();
-	size[2]=sizeof(database_filename.c_str());
+	size[2]=database_filename.length();
 	MPI::COMM_WORLD.Bcast(size,3,MPI::INT,0);
 	MPI::COMM_WORLD.Bcast((char *)database_filename.c_str(),size[2],MPI::CHAR,0);
 	//deliverer.CreateResponseThread(resources,mpi_parameter.size);
@@ -354,11 +359,12 @@ void MPICommon::SetupWorkerResources(WorkerResources &resources,MPIParameter &mp
 	query_chunk_size=buf[0];
 	database_chunk_size=buf[1];
 	database_filename= new char[buf[2]];
+	cout<<"buf[2]"<<buf[2]<<endl;
 	MPI::COMM_WORLD.Bcast(database_filename,buf[2],MPI::CHAR,0);
-	resources.database_filename=string(database_filename);
+	resources.database_filename=string(database_filename,database_filename+buf[2]);
 	resources.database_info=databaseinfo;
-	//cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
-	//cout<<"databasename:"<<resources.database_filename<<endl;
+	cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
+	cout<<"databasename:"<<resources.database_filename<<endl;
 	//setup query
 	for(int i=0;i<query_chunk_size;i++){
 		QueryResource query;

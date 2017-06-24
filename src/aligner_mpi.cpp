@@ -60,17 +60,17 @@ void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
 
 	for (Queries queries(queries_is, queries_parameters);
 		 queries.GetNumberOfSequences() != 0; queries.Next()) {
-		//ss.str("");
-		//ss << "number queries is " << queries.GetNumberOfSequences();
-		//logger->Log(ss.str());
+		ss.str("");
+		ss << "number queries is " << queries.GetNumberOfSequences();
+		logger->Log(ss.str());
 		
 		vector<vector<AlignerMPI::PresearchedResult> > 
 			presearch_results_list( queries.GetNumberOfSequences());
 		//vector<vector<AlignerMPI::Result> > 
 		results_list.resize(queries.GetNumberOfSequences());
-		//logger->Log("start presearch");
+		logger->Log("start presearch");
 		Presearch(queries, database, parameters, presearch_results_list);
-		//logger->Log("start build results");
+		logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,	results_list);
 		ss.str("");
 		
@@ -216,7 +216,7 @@ void AlignerMPI::Presearch(Queries &queries, DatabaseType &database,
 	shared_parameters.results_list = &results_list;
 	shared_parameters.presearch_barrier = &presearch_barrier;
 	shared_parameters.all_barrier = &all_barrier;
-
+	cout<<"presearch nthreads:"<<number_presearch_threads<<endl;
 	for (size_t i = 0; i < number_presearch_threads; ++i) {
 		AlignerPresearchThreadMPI t;
 		AlignerPresearchThread::ThreadParameters p;

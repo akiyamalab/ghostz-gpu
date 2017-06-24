@@ -179,7 +179,8 @@ void MPIResource::LoadDatabaseResource(WorkerResources &resources,int chunk_id){
         MPI_Abort(MPI_COMM_WORLD,1);
     }
     if(resources.database_list[chunk_id].available){
-        return ;
+        cout<<"already loaded.:"<<chunk_id<<endl;
+		return ;
     }
     stringstream ss;
     //.inf
@@ -227,7 +228,8 @@ void MPIResource::UnloadDatabaseResource(WorkerResources &resources,int chunk_id
     }
     if(!resources.database_list[chunk_id].available){
         return ;
-    }
+	}
+	cout<<"unloading.:"<<chunk_id<<endl;
     delete [] resources.database_list[chunk_id].inf;
     delete [] resources.database_list[chunk_id].nam;
     delete [] resources.database_list[chunk_id].off;
@@ -242,7 +244,7 @@ void MPIResource::UnloadDatabaseResource(WorkerResources &resources,int chunk_id
 void MPIResource::loadFileData(std::string filename,char **ptr,uint64_t *size){
     ifstream in(filename.c_str());
     uint64_t begin,end;
-    int size_;
+    uint64_t size_;
     in.seekg(0,ios::end);
     end = in.tellg();
     in.clear();
@@ -251,7 +253,7 @@ void MPIResource::loadFileData(std::string filename,char **ptr,uint64_t *size){
     size_=end-begin;
 
     *ptr = new char[size_];
-    //cout<<filename<<" size:"<<size_<<endl;
+	//    cout<<filename.c_str()<<" size:"<<size_<<endl;
     in.read(*ptr,size_);
     in.close();
     *size=size_;

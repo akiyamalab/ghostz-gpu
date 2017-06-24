@@ -226,7 +226,7 @@ all_on_memory_flag_(false), saving_(false), setting_informations_(true),
 	sequence_delimiter_  = database_info.sequence_delimiter;
 	chunk_id_ = database_resource.chunk_id;
 	for (size_t i = 0; i < kNumberOfChunkIds; ++i) {
-		chunk_ids_[i] = -1;
+		chunk_ids_[i] = i;
 	}
 
 	SetChunk(database_resource);
@@ -237,16 +237,16 @@ bool Database<TSeedSearcher>::SetChunk(MPIResource::DatabaseResource &database_r
 	all_on_memory_flag_=false;
 	saving_=true;
 	setting_informations_ = true;
-	chunk_list_.resize(kNumberOfChunkIds);
 	chunk_id_ = database_resource.chunk_id;
-	chunk_ids_[kUsedChunkId] = chunk_id_;
-	
+	chunk_list_.resize(kNumberOfChunkIds);
+	//chunk_ids_[kUsedChunkId] = chunk_id_;
+	std::cout<<"chunk_ids_["<<kUsedChunkId<<"] = "<<chunk_ids_[kUsedChunkId]<<std::endl;
 	if (!chunk_list_[chunk_ids_[kUsedChunkId]]) {
 		chunk_list_[chunk_ids_[kUsedChunkId]] =
 			DatabaseChunkTypePtr(new DatabaseChunkType);
 	}
-	chunk_list_[chunk_ids_[kUsedChunkId]]->Load(database_resource);
-	
+
+	chunk_list_[chunk_ids_[kUsedChunkId]]->Load(database_resource);	
 	
 }
 
@@ -394,7 +394,7 @@ bool Database<TSeedSearcher>::BuildNextChunk() {
 	std::vector<Sequence> sequences;
 	AlphabetCoder coder(*(parameters_.sequence_type_ptr));
 	if (all_on_memory_flag_) {
-		chunk_ids_[kUsedChunkId] = chunk_id_;
+		//chunk_ids_[kUsedChunkId] = chunk_id_;
 		chunk_list_.resize(chunk_id_ + 1);
 	} else if (chunk_list_.empty()) {
 		chunk_list_.resize(1);
