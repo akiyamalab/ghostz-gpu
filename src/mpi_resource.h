@@ -96,6 +96,7 @@ class MPIResource{
 	
 	static int BcastDatabase(DatabaseResource &database, MPI::Intercomm comm, int root);
 	static int BcastDatabaseInfo(DatabaseInfo &info,MPI::Intercomm comm ,int root);
+	static void BcastLargeData(char **ptr,uint64_t size,MPI::Intercomm comm,int root);
 	
 	static int AcceptCommand(MasterResources &resources,int *cmd,int *target);
 	

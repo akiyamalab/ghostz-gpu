@@ -13,13 +13,13 @@ using namespace std;
 
 
 int MPIResource::BcastDatabase(DatabaseResource &database,MPI::Intercomm comm,int root){
-
-	comm.Bcast((char *)&database.inf_size,sizeof(uint64_t),MPI::CHAR,0);
-	comm.Bcast((char *)&database.nam_size,sizeof(uint64_t),MPI::CHAR,0);
-	comm.Bcast((char *)&database.off_size,sizeof(uint64_t),MPI::CHAR,0);
-	comm.Bcast((char *)&database.seq_size,sizeof(uint64_t),MPI::CHAR,0);
-	comm.Bcast((char *)&database.scp_size,sizeof(uint64_t),MPI::CHAR,0);
-	comm.Bcast((char *)&database.sdp_size,sizeof(uint64_t),MPI::CHAR,0);
+	cout<<"sizeof uint64t="<<sizeof(int64_t)<<endl;
+	comm.Bcast((char *)&database.inf_size,sizeof(uint64_t),MPI::CHAR,root);
+	comm.Bcast((char *)&database.nam_size,sizeof(uint64_t),MPI::CHAR,root);
+	comm.Bcast((char *)&database.off_size,sizeof(uint64_t),MPI::CHAR,root);
+	comm.Bcast((char *)&database.seq_size,sizeof(uint64_t),MPI::CHAR,root);
+	comm.Bcast((char *)&database.scp_size,sizeof(uint64_t),MPI::CHAR,root);
+	comm.Bcast((char *)&database.sdp_size,sizeof(uint64_t),MPI::CHAR,root);
 	if(comm.Get_rank()!=0){
 		database.inf = new char[database.inf_size];
 		database.nam = new char[database.nam_size];
@@ -28,13 +28,21 @@ int MPIResource::BcastDatabase(DatabaseResource &database,MPI::Intercomm comm,in
 		database.scp = new char[database.scp_size];
 		database.sdp = new char[database.sdp_size];
 	}
+
+	BcastLargeData(&database.inf,database.inf_size,comm,root);
+	BcastLargeData(&database.nam,database.nam_size,comm,root);
+	BcastLargeData(&database.off,database.seq_size,comm,root);
+	BcastLargeData(&database.seq,database.scp_size,comm,root);
+	BcastLargeData(&database.sdp,database.sdp_size,comm,root);
+
+	/*
 	comm.Bcast(database.inf,database.inf_size,MPI::CHAR,0);
 	comm.Bcast(database.nam,database.nam_size,MPI::CHAR,0); 
 	comm.Bcast(database.off,database.off_size,MPI::CHAR,0);
 	comm.Bcast(database.seq,database.seq_size,MPI::CHAR,0);
 	comm.Bcast(database.scp,database.scp_size,MPI::CHAR,0);
 	comm.Bcast(database.sdp,database.sdp_size,MPI::CHAR,0);
-	
+	*/
 	return 0;
 }
 
@@ -52,6 +60,20 @@ int MPIResource::BcastDatabaseInfo(DatabaseInfo &info,MPI::Intercomm comm,int ro
 	
 	
 }
+
+void MPIResource::BcastLargeData(char **ptr,uint64_t size,MPI::Intercomm comm,int root){
+    char *ptr_ = *ptr;
+    int iter=size/(1024*1024*1024);
+    for(int i=0;i<iter;i++){
+        comm.Bcast(ptr_,1024*1024*1024,MPI::CHAR,root);
+        ptr_+= 1024*1024*1024;
+        size-= 1024*1024*1024;
+    }
+    if(size>0){
+        comm.Bcast(ptr_,size,MPI::CHAR,root);
+    }
+}
+
 int MPIResource::AcceptCommand(MasterResources &resources, int *cmd,int *target){
 	int buf[2];
 	MPI::Status status;

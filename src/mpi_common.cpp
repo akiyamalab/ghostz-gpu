@@ -195,7 +195,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 			MPI::COMM_WORLD.Split(1,rank);
 		}
 	}
-	
+	cout<<"rank:"<<rank<<"comm created."<<endl;
 	if(submaster){
 		//load db from filesystem
 		MPIResource::LoadDatabaseResource(resources,target_chunk);
@@ -204,10 +204,10 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//Broadcast db to subgroup
 	uint64_t sum =0;
 	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
-
+	cout<<"rank:"<<rank<<"db recved."<<endl;
 
 	DatabaseType database(resources.database_list[target_chunk],resources.database_info);
-	DatabaseType database_(resources.database_filename);
+	//DatabaseType database_(resources.database_filename);
 	//cout<<"database.GetChunkId = "<<database.GetChunkId()<<endl;
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
