@@ -239,8 +239,6 @@ bool Database<TSeedSearcher>::SetChunk(MPIResource::DatabaseResource &database_r
 	setting_informations_ = true;
 	chunk_id_ = database_resource.chunk_id;
 	chunk_list_.resize(kNumberOfChunkIds);
-	//chunk_ids_[kUsedChunkId] = chunk_id_;
-	std::cout<<"chunk_ids_["<<kUsedChunkId<<"] = "<<chunk_ids_[kUsedChunkId]<<std::endl;
 	if (!chunk_list_[chunk_ids_[kUsedChunkId]]) {
 		chunk_list_[chunk_ids_[kUsedChunkId]] =
 			DatabaseChunkTypePtr(new DatabaseChunkType);

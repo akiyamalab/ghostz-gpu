@@ -31,8 +31,9 @@ int MPIResource::BcastDatabase(DatabaseResource &database,MPI::Intercomm comm,in
 
 	BcastLargeData(&database.inf,database.inf_size,comm,root);
 	BcastLargeData(&database.nam,database.nam_size,comm,root);
-	BcastLargeData(&database.off,database.seq_size,comm,root);
-	BcastLargeData(&database.seq,database.scp_size,comm,root);
+	BcastLargeData(&database.off,database.off_size,comm,root);
+	BcastLargeData(&database.seq,database.seq_size,comm,root);
+	BcastLargeData(&database.scp,database.scp_size,comm,root);
 	BcastLargeData(&database.sdp,database.sdp_size,comm,root);
 
 	/*
@@ -251,7 +252,7 @@ void MPIResource::UnloadDatabaseResource(WorkerResources &resources,int chunk_id
     if(!resources.database_list[chunk_id].available){
         return ;
 	}
-	cout<<"unloading.:"<<chunk_id<<endl;
+	//	cout<<"unloading.:"<<chunk_id<<endl;
     delete [] resources.database_list[chunk_id].inf;
     delete [] resources.database_list[chunk_id].nam;
     delete [] resources.database_list[chunk_id].off;
@@ -275,7 +276,7 @@ void MPIResource::loadFileData(std::string filename,char **ptr,uint64_t *size){
     size_=end-begin;
 
     *ptr = new char[size_];
-	//    cout<<filename.c_str()<<" size:"<<size_<<endl;
+	// cout<<filename.c_str()<<" size:"<<size_<<endl;
     in.read(*ptr,size_);
     in.close();
     *size=size_;

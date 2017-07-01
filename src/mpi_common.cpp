@@ -359,12 +359,11 @@ void MPICommon::SetupWorkerResources(WorkerResources &resources,MPIParameter &mp
 	query_chunk_size=buf[0];
 	database_chunk_size=buf[1];
 	database_filename= new char[buf[2]];
-	cout<<"buf[2]"<<buf[2]<<endl;
 	MPI::COMM_WORLD.Bcast(database_filename,buf[2],MPI::CHAR,0);
 	resources.database_filename=string(database_filename,database_filename+buf[2]);
 	resources.database_info=databaseinfo;
-	cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
-	cout<<"databasename:"<<resources.database_filename<<endl;
+	//cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
+	//cout<<"databasename:"<<resources.database_filename<<endl;
 	//setup query
 	for(int i=0;i<query_chunk_size;i++){
 		QueryResource query;
