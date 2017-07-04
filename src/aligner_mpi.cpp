@@ -62,15 +62,15 @@ void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
 		 queries.GetNumberOfSequences() != 0; queries.Next()) {
 		ss.str("");
 		ss << "number queries is " << queries.GetNumberOfSequences();
-		logger->Log(ss.str());
+		//logger->Log(ss.str());
 		
 		vector<vector<AlignerMPI::PresearchedResult> > 
 			presearch_results_list( queries.GetNumberOfSequences());
 		//vector<vector<AlignerMPI::Result> > 
 		results_list.resize(queries.GetNumberOfSequences());
-		logger->Log("start presearch");
+		//logger->Log("start presearch");
 		Presearch(queries, database, parameters, presearch_results_list);
-		logger->Log("start build results");
+		//logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,	results_list);
 		ss.str("");
 		
@@ -78,7 +78,7 @@ void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
 		  for(int i=0;i<queries.GetNumberOfSequences();i++){
 		  cout<<queries.GetQuery(i)->GetName()<<":"<<queries.GetQuery(i)->GetSequenceLength()<<endl;
 		  }
-		*/
+		
 		int pre_hit_count=0;
 		for(int i=0;i<presearch_results_list.size();i++){
 			for(int j=0;j<presearch_results_list[i].size();j++){
@@ -90,7 +90,7 @@ void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
 			for(int j=0;j<results_list[i].size();j++){
 				hit_count++;
 			}
-		}
+		}*/
 		
 		//ss<<"rank"<<mpi_parameter.rank<<" search finish. #of result:"<<pre_hit_count<<"->"<<hit_count;
 		logger->Log(ss.str());
