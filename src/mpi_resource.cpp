@@ -13,7 +13,6 @@ using namespace std;
 
 
 int MPIResource::BcastDatabase(DatabaseResource &database,MPI::Intercomm comm,int root){
-	cout<<"sizeof uint64t="<<sizeof(int64_t)<<endl;
 	comm.Bcast((char *)&database.inf_size,sizeof(uint64_t),MPI::CHAR,root);
 	comm.Bcast((char *)&database.nam_size,sizeof(uint64_t),MPI::CHAR,root);
 	comm.Bcast((char *)&database.off_size,sizeof(uint64_t),MPI::CHAR,root);

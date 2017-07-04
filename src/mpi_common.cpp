@@ -71,7 +71,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	float timer_second;
 #endif
 	//Master Process Init
-	//cout<<"master start:"<<mpi_parameter.rank<<endl;
+	cout<<"master start:"<<mpi_parameter.rank<<endl;
 	MasterResources resources;
 	resources.query_filename=queries_filename;
 	resources.database_filename=database_filename;
@@ -167,7 +167,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	float timer_second;
 #endif
 
-	//cout<<"worker start:"<<mpi_parameter.rank<<endl;
+	cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
 	int rank=mpi_parameter.rank;
 	//***********************//
@@ -195,7 +195,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 			MPI::COMM_WORLD.Split(1,rank);
 		}
 	}
-	cout<<"rank:"<<rank<<"comm created."<<endl;
+	//	cout<<"rank:"<<rank<<"comm created."<<endl;
 	if(submaster){
 		//load db from filesystem
 		MPIResource::LoadDatabaseResource(resources,target_chunk);
@@ -204,7 +204,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//Broadcast db to subgroup
 	uint64_t sum =0;
 	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
-	cout<<"rank:"<<rank<<"db recved."<<endl;
+	//cout<<"rank:"<<rank<<"db recved."<<endl;
 
 	DatabaseType database(resources.database_list[target_chunk],resources.database_info);
 	//DatabaseType database_(resources.database_filename);
@@ -234,13 +234,14 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		}
 		if(task.database_chunk!=target_chunk){
 			//Loadatabase
-			cout<<"rank:"<<rank<<"unload db:"<<target_chunk<<endl;
+			cout<<"rank:"<<rank<<" switching db "<<target_chunk<<" to "<<task.database_chunk<<endl;
+			//cout<<"rank:"<<rank<<" unload db:"<<target_chunk<<endl;
 			MPIResource::UnloadDatabaseResource(resources,target_chunk);
 			target_chunk=task.database_chunk;
-			cout<<"rank:"<<rank<<"load db:"<<target_chunk<<endl;
+			//cout<<"rank:"<<rank<<" load db:"<<target_chunk<<endl;
 			MPIResource::LoadDatabaseResource(resources,target_chunk);
 			database.SetChunk(resources.database_list[target_chunk]);
-			cout<<"rank:"<<rank<<"end Loading."<<endl;
+			//cout<<"rank:"<<rank<<" end Loading."<<endl;
 		}
 		
 		if(!resources.query_list[task.query_chunk].available){
@@ -248,6 +249,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		}
 		aligner.Search(resources.query_list[task.query_chunk],database,results_list,parameter,mpi_parameter);
 		results_list.clear();
+
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
 	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;

@@ -570,7 +570,7 @@ bool DatabaseChunk<TSeedSearcher>::LoadInfomation(MPIResource::DatabaseResource 
 		in.read((char *) &concatenated_sequences_length_,
 				sizeof(concatenated_sequences_length_));
 		in.clear();
-		std::cout<<"db.inf load numseq:"<<number_sequences_<<std::endl;
+		//std::cout<<"db.inf load numseq:"<<number_sequences_<<std::endl;
 		return true;
 	}
 	return false;
