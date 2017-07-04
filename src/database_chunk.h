@@ -127,7 +127,7 @@ public:
 		{
 			if (!setted_seed_searcher_parameters_) {
 #ifndef F_MPI
-				LoadSeedSearcherParameters(filename_prefix_)
+				LoadSeedSearcherParameters(filename_prefix_);
 #else
 				if(load_from_memory_flag_){
 					LoadSeedSearcherParameters(database_resource_);
