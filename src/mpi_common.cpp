@@ -23,6 +23,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <sys/stat.h>
 
 #define F_TIMER
 #ifdef F_TIMER
@@ -291,7 +292,11 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 	//init query resource
 	vector<int> pointer_list;
 	vector<int> size_list;
-	
+	struct stat st;
+	if(stat(queries_filename.c_str(),&st)==-1){
+		cerr<<"Query file does not exist. Abort."<<endl;
+		MPI::COMM_WORLD.Abort(1);
+	}
 	BuildQueryChunkPointers(queries_filename,pointer_list,size_list,parameter);
 	int query_chunk_number = pointer_list.size();
 	for(int i=0;i<query_chunk_number;i++){
@@ -307,6 +312,11 @@ void MPICommon::SetupMasterResources(string &queries_filename,string &database_f
 	//init database resource
 	string inf_file = resources.database_filename+".inf";
 	DatabaseInfo databaseinfo;
+	if(stat(inf_file.c_str(),&st)==-1){
+		cerr<<"Database file does not exist. Abort."<<endl;
+		MPI::COMM_WORLD.Abort(1);
+	
+	}
 	
 	MPIResource::LoadDatabaseInfo(databaseinfo,inf_file);
 	

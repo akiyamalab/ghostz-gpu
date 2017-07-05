@@ -216,7 +216,6 @@ void AlignerMPI::Presearch(Queries &queries, DatabaseType &database,
 	shared_parameters.results_list = &results_list;
 	shared_parameters.presearch_barrier = &presearch_barrier;
 	shared_parameters.all_barrier = &all_barrier;
-	cout<<"presearch nthreads:"<<number_presearch_threads<<endl;
 	for (size_t i = 0; i < number_presearch_threads; ++i) {
 		AlignerPresearchThreadMPI t;
 		AlignerPresearchThread::ThreadParameters p;
