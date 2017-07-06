@@ -168,7 +168,8 @@ MPI_SRC=./src/mpi_main.cpp \
 	./src/mpi_resource.cpp \
 	./src/aligner_presearch_thread_mpi.cpp \
 	./src/aligner_build_results_thread_mpi.cpp \
-	./src/load_balancer.cpp
+	./src/load_balancer.cpp \
+	./src/result_summarizer.cpp 
 
 
 

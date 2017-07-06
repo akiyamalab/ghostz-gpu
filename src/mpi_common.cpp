@@ -15,8 +15,9 @@
 #include "score_matrix_reader.h"
 #include "reduced_alphabet_file_reader.h"
 #include "mpi_resource.h"
-#include  "aligner_mpi.h"
+#include "aligner_mpi.h"
 #include "aligner.h"
+#include "result_summarizer.h"
 
 #include "mpi.h"
 #include <iostream>
@@ -220,6 +221,9 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//Start Search Phase
 	AlignerMPI aligner;
 	AlignmentTask task;
+	string tmpDir="tmp";
+	ResultSummarizer summary(tmpDir);
+	
 	vector<vector<Result> > results_list;
 	for(;;){
 		int task_query=0,task_db=0;
@@ -248,9 +252,39 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		if(!resources.query_list[task.query_chunk].available){
 			MPIResource::RequestQuery(resources,task.query_chunk);
 		}
-		aligner.Search(resources.query_list[task.query_chunk],database,results_list,parameter,mpi_parameter);
+		aligner.Search(resources.query_list[task.query_chunk],
+					   database,results_list,parameter,mpi_parameter);
+		char *result_data;
+		int result_size;
+		summary.SaveResultFile(results_list,task);
+		
+		
+		vector<vector<Result> > results_list_;
+		summary.LoadResultFile(results_list_,task);
+		bool match =true;
+ 			for(int i =0;i<results_list.size();i++){
+			for(int j=0;j<results_list[i].size();j++){
+				Result r = results_list[i][j];
+				Result r_ = results_list_[i][j];
+				if(r.subject_name.length()!=r_.subject_name.length()){
+					match =false;
+				}
+				for( int c=0;c<r.subject_name.length();c++){
+					if(r.subject_name[c]!=r_.subject_name[c]){
+						match=false;
+					}
+					
+				}
+				if(r.end.database_position!=r_.end.database_position){
+					match=false;
+				}
+			   
+			}
+		}
+		//		cout<<"Test:"<<match<<endl;
+		
 		results_list.clear();
-
+	
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
 	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
@@ -269,6 +303,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		for(int j=0;j<results_list[i].size();j++){
 			//cout<<results_list[i][j].subject_name<<endl;
 		}}
+	
 	//End Search Phase
 	//***********************//
 	//Start Report Phase

@@ -40,7 +40,7 @@ public:
 	void Search(QueryResource &query_resource, DatabaseType &database,
 				std::vector<std::vector<Result> > &results_list,
 				AligningParameters &parameters,MPIParameter &mpi_parameter);
-
+ 
 private:
 	typedef AlignerCommon::AlignmentPositionLessPosition AlignmentPositionLessPosition;
 	typedef AlignerCommon::PresearchedResultGreaterScore PresearchedResultGreaterScore;

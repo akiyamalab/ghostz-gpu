@@ -12,7 +12,6 @@
 #include "mpi.h"
 
 #include "alphabet_coder.h"
-
 #include "unistd.h"
 
 class MPIResource{
