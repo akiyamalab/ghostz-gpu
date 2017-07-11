@@ -132,3 +132,30 @@ void ResultSummarizer::DeserializeResult(vector<vector<Result> > &results_list,c
     }
 }
 
+
+void ResultSummarizer::SendResult(char *data,int size,AlignmentTask task,int target_rank){
+	int buf[3];
+	buf[0]=size;
+	buf[1]=task.database_chunk;
+	buf[2]=task.query_chunk;
+	
+	MPI::COMM_WORLD.Send(buf,sizeof(buf),MPI::INT,target_rank,0);
+	MPI::COMM_WORLD.Send(data,size,MPI::CHAR,target_rank,0);
+	
+}
+
+void ResultSummarizer::RecvResult(vector<vector<Result> > &results_list,AlignmentTask &task){
+	int size;
+	int buf[3];
+	char *data;
+	MPI::Status status;
+	MPI::COMM_WORLD.Recv(buf,sizeof(buf),MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG,status);
+	size=buf[0];
+	task.database_chunk=buf[1];
+	task.query_chunk[2];
+	data = new char[size]; 
+	int target_rank=status.Get_source();
+	MPI::COMM_WORLD.Recv(data,size,MPI::CHAR,target_rank,0);
+	DeserializeResult(results_list,data,size);
+
+}

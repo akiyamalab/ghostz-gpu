@@ -154,6 +154,11 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//End Search Phase
 	//***********************//
 	//Start Report Phase
+	string tmp("tmp");
+	ResultSummarizer summary(tmp);
+	vector<vector<Result> > results_list;
+ 	AlignmentTask task;
+	//summary.RecvResult(results_list,task);
 	
 	//finalize
 	MPI::COMM_WORLD.Barrier();	
@@ -256,8 +261,9 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 					   database,results_list,parameter,mpi_parameter);
 		char *result_data;
 		int result_size;
+		summary.SerializeResult(results_list,&result_data,&result_size);
 		summary.SaveResultFile(results_list,task);
-		
+		summary.SendResult(result_data,result_size,task,0);
 		
 		vector<vector<Result> > results_list_;
 		summary.LoadResultFile(results_list_,task);

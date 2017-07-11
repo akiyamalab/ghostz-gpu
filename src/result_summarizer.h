@@ -30,15 +30,22 @@ class ResultSummarizer{
 	int LoadResultFile(std::vector<std::vector<Result> > &results_list,
 					   AlignmentTask task);
 	
+	void SendResult(char *data,int size,AlignmentTask task,int target_rank);
+	void RecvResult(std::vector<std::vector<Result> > &results_list,
+					AlignmentTask &task);
+
+
+	void SerializeResult(std::vector<std::vector<Result> > &results_list,
+						 char **ptr,int *size);
+	void DeserializeResult(std::vector<std::vector<Result> > &results_list,
+						   char *ptr,int size);
+	
  private:
 	std::vector<std::vector<AlignmentTask> > list_;
 	std::string tmpDirName_;
 	
 	
-	void SerializeResult(std::vector<std::vector<Result> > &results_list,
-						 char **ptr,int *size);
-	void DeserializeResult(std::vector<std::vector<Result> > &results_list,
-						   char *ptr,int size);
+	 
 	
 	std::string GetTmpFilename(AlignmentTask task){
 		std::stringstream ss;
