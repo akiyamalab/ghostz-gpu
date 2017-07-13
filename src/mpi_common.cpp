@@ -151,6 +151,13 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		//		cout<<balancer.print()<<endl;
 		
 	}	
+
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
+	printf("%.0f\t[ms]\tmaster: Search Phase\n",timer_second);
+#endif
+	MPI::COMM_WORLD.Barrier();
 	//End Search Phase
 	//***********************//
 	//Start Report Phase
@@ -158,7 +165,8 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	ResultSummarizer summary(tmp);
 	vector<vector<Result> > results_list;
  	AlignmentTask task;
-	//summary.RecvResult(results_list,task);
+	summary.GatherResultMaster(resources.query_list.size(),resources.database_list.size());
+	
 	
 	//finalize
 	MPI::COMM_WORLD.Barrier();	
@@ -259,42 +267,15 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		}
 		aligner.Search(resources.query_list[task.query_chunk],
 					   database,results_list,parameter,mpi_parameter);
-		char *result_data;
-		int result_size;
-		summary.SerializeResult(results_list,&result_data,&result_size);
+		
 		summary.SaveResultFile(results_list,task);
-		summary.SendResult(result_data,result_size,task,0);
-		
-		vector<vector<Result> > results_list_;
-		summary.LoadResultFile(results_list_,task);
-		bool match =true;
- 			for(int i =0;i<results_list.size();i++){
-			for(int j=0;j<results_list[i].size();j++){
-				Result r = results_list[i][j];
-				Result r_ = results_list_[i][j];
-				if(r.subject_name.length()!=r_.subject_name.length()){
-					match =false;
-				}
-				for( int c=0;c<r.subject_name.length();c++){
-					if(r.subject_name[c]!=r_.subject_name[c]){
-						match=false;
-					}
-					
-				}
-				if(r.end.database_position!=r_.end.database_position){
-					match=false;
-				}
-			   
-			}
-		}
-		//		cout<<"Test:"<<match<<endl;
-		
+			
 		results_list.clear();
 	
 #ifdef F_TIMER
-	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-	printf("%.0f\t[ms]\trank:%d Search(%d,%d)\n",timer_second,rank,task_query,task_db);
+		gettimeofday(&tv,NULL);
+		timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+		printf("%.0f\t[ms]\trank:%d Search(%d,%d)\n",timer_second,rank,task_query,task_db);
 #endif
 	}
 	
@@ -309,11 +290,28 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		for(int j=0;j<results_list[i].size();j++){
 			//cout<<results_list[i][j].subject_name<<endl;
 		}}
-	
+	//unload resources;
+	MPIResource::UnloadDatabaseResource(resources,target_chunk);
+   /*
+	for(int i=0;i<resources.query_list.size();i++){
+		if(resources.query_list[i].size>0){
+			cout<<"rank:"<<rank<<" query:"<<i<<"  True "<<resources.query_list[i].size<<endl;
+		}else{
+			cout<<"rank:"<<rank<<" query:"<<i<<"  False"<<endl;
+			
+		}
+	}
+	//*/
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	printf("%.0f\t[ms]\trank:%d Search Phase\n",timer_second,rank);
+#endif
+	MPI::COMM_WORLD.Barrier();
 	//End Search Phase
 	//***********************//
 	//Start Report Phase
-
+	summary.GatherResultWorker(rank);
 	//End Report Phase
 
 	
