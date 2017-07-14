@@ -179,6 +179,19 @@ void MPIResource::UnloadQueryResource(MasterResources &resources,int chunk_id){
     resources.query_list[chunk_id].available=false;
 
 }
+void MPIResource::UnloadQueryResource(WorkerResources &resources,int chunk_id){
+	if(chunk_id > resources.query_list.size()){
+        cerr<<"query chunk id error:"<<chunk_id<<endl;
+        MPI_Abort(MPI_COMM_WORLD,1);
+    }
+    if(!resources.query_list[chunk_id].available){
+        return ;
+    }
+
+    delete [] resources.query_list[chunk_id].data;
+    resources.query_list[chunk_id].available=false;
+	
+}
 
 void MPIResource::LoadDatabaseInfo(DatabaseInfo &database_info,std::string database_info_filename){
 	ifstream in;

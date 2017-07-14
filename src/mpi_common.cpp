@@ -268,6 +268,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		aligner.Search(resources.query_list[task.query_chunk],
 					   database,results_list,parameter,mpi_parameter);
 		
+		MPIResource::UnloadQueryResource(resources,task.query_chunk);
 		summary.SaveResultFile(results_list,task);
 			
 		results_list.clear();

@@ -109,6 +109,7 @@ class MPIResource{
 	static int SendQuery(QueryResource &query_resource, MPI::Intercomm comm,int dst_rank);
 	static void LoadQueryResource(MasterResources &resources, int chunk_id);
 	static void UnloadQueryResource(MasterResources &resources, int chunk_id);
+	static void UnloadQueryResource(WorkerResources &resources, int chunk_id);
 	static void LoadDatabaseInfo(DatabaseInfo &database_info,std::string database_info_filename);
 	static void LoadDatabaseResource(WorkerResources &resources, int chunk_id);
 	static void UnloadDatabaseResource(WorkerResources &resources , int chunk_id);
