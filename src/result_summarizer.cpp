@@ -357,9 +357,6 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		}
 		
 	}
-	
-	
-	
 	ss.str("");
 	ss<<"rank:"<<rank<<"  ";
 	for(int i=0;i<my_target.size();i++){
@@ -381,7 +378,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		ss<<endl;
 	}	
 	cout<<ss.str();
-	
+	/*
 	int first_target = my_target[0];
 	vector<vector<Result> > results_list;
 	vector<vector<Result> > results_list_;
@@ -389,17 +386,17 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 	task.query_chunk=first_target;
 	task.database_chunk=0;
 	
-	DeserializeResult(results_list,
+   	DeserializeResult(results_list,
 					  result_data_list[first_target][0],result_size_map[first_target][0]);
 	
-	DeserializeResult(results_list_,
-					  result_data_list[first_target][1],result_size_map[first_target][1]);
-	cout<<"rank:"<<rank<<" Q:"<<first_target<<":"<<results_list[0].size()<<endl;
+	//DeserializeResult(results_list_,
+	//				  result_data_list[first_target][1],result_size_map[first_target][1]);
+	//cout<<"rank:"<<rank<<" Q:"<<first_target<<":"<<results_list[0].size()<<endl;
    
 	for(int i=0;i<results_list[0].size();i++){
 		//cout<<i<<endl;
 		cout<<results_list[0][i].subject_name<<endl;
-	}
+		}*/
 	
 		
 	
