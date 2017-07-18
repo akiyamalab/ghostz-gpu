@@ -72,6 +72,13 @@ void AlignerMPI::Search(QueryResource  &query_resource ,DatabaseType &database,
 		Presearch(queries, database, parameters, presearch_results_list);
 		//logger->Log("start build results");
 		BuildResults(queries, database, parameters, presearch_results_list,	results_list);
+		for(int i=0;i<results_list.size();i++){
+			if(results_list[i].size()>=1){
+				results_list[i][0].query_name   = queries.GetQuery(i)->GetName();
+				results_list[i][0].query_length = queries.GetQuery(i)->GetRealSequenceLength();
+			}
+			
+		}
 		ss.str("");
 		
 		/*

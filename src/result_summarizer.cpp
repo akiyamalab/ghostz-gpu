@@ -75,7 +75,11 @@ void ResultSummarizer::SerializeResult(vector<vector<Result> > &results_list,cha
             Result r =results_list[i][j];
             const char *subject_name = r.subject_name.c_str();
             int subject_name_size = r.subject_name.size();
-            ss.write((char *)&r.database_chunk_id,sizeof(r.database_chunk_id));
+            const char *query_name = r.query_name.c_str();
+			int query_name_size = r.query_name.size();
+			
+
+			ss.write((char *)&r.database_chunk_id,sizeof(r.database_chunk_id));
             ss.write((char *)&r.subject_id_in_chunk,sizeof(r.subject_id_in_chunk));
             ss.write((char *)&subject_name_size,sizeof(subject_name_size));
             ss.write((char *)subject_name,subject_name_size);
@@ -91,7 +95,9 @@ void ResultSummarizer::SerializeResult(vector<vector<Result> > &results_list,cha
             ss.write((char *)&r.end.query_position,sizeof(r.end.query_position));
             ss.write((char *)&r.end.database_position,sizeof(r.end.database_position));
             ss.write((char *)&r.hit_count,sizeof(r.hit_count));
-
+			ss.write((char *)&query_name_size,sizeof(query_name_size));
+            ss.write((char *)query_name,query_name_size);
+			ss.write((char *)&r.query_length,sizeof(r.query_length));
         }
 
     }
@@ -120,6 +126,8 @@ void ResultSummarizer::DeserializeResult(vector<vector<Result> > &results_list,c
             Result r;
             int subject_name_size;
             char *subject_name;
+			int query_name_size;
+			char *query_name;
             ss.read((char *)&r.database_chunk_id,sizeof(r.database_chunk_id));
             ss.read((char *)&r.subject_id_in_chunk,sizeof(r.subject_id_in_chunk));
             ss.read((char *)&subject_name_size,sizeof(subject_name_size));
@@ -138,7 +146,12 @@ void ResultSummarizer::DeserializeResult(vector<vector<Result> > &results_list,c
             ss.read((char *)&r.end.query_position,sizeof(r.end.query_position));
             ss.read((char *)&r.end.database_position,sizeof(r.end.database_position));
             ss.read((char *)&r.hit_count,sizeof(r.hit_count));
-
+			
+			ss.read((char *)&query_name_size,sizeof(query_name_size));
+            query_name= new char[query_name_size];
+            ss.read(query_name,query_name_size);
+            r.query_name = string(query_name,query_name+query_name_size);
+			ss.read((char *)&r.query_length,sizeof(r.query_length));
             results_list[i].push_back(r);
 
         }
@@ -378,7 +391,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		ss<<endl;
 	}	
 	cout<<ss.str();
-	/*
+	
 	int first_target = my_target[0];
 	vector<vector<Result> > results_list;
 	vector<vector<Result> > results_list_;
@@ -395,8 +408,9 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
    
 	for(int i=0;i<results_list[0].size();i++){
 		//cout<<i<<endl;
-		cout<<results_list[0][i].subject_name<<endl;
-		}*/
+		cout<<results_list[0][i].subject_name<<":"<<results_list[0][0].query_name<<":len "<<results_list[0][0].query_length<<endl;
+		}
+	
 	
 		
 	

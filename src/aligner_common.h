@@ -89,6 +89,8 @@ public:
 		Coordinate start;
 		Coordinate end;
 		uint32_t hit_count;
+		std::string query_name;
+		uint32_t query_length;
 	} Result;
 
 	static int AlignmentComp(const int a_score, const Coordinate &a_start,
@@ -322,7 +324,7 @@ void AlignerCommon::BuildResult(Query &query, TDatabase &database,
 #if 0
 /// debug //////////////////////////////////////////////////
 	cout << result.score << " "<<result.start.query_position << " "<< result.start.database_position << " "<< result.end.query_position << " " << result.end.database_position<<endl;
-/////////////////////////////////////////////////////////////
+</////////////////////////////////////////////////////////////
 #endif
 	result.database_chunk_id = database_chunk_id;
 	result.subject_id_in_chunk = subject_id_in_chunk;
