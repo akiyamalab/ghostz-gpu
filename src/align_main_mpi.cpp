@@ -143,6 +143,7 @@ bool AlignMainMPI::BuildParameters(int argc, char* argv[], string &input_filenam
 			break;
 		case 'm':
 			tmp_dirname = optarg;
+			break;
 		case 'o':
 			output_filename = optarg;
 			break;

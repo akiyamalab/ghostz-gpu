@@ -45,7 +45,7 @@ void MPICommon::Run(string &queries_filename,string &database_filename,
 		RunMaster(queries_filename,database_filename,output_filename,tmp_dirname,
 				  parameter,mpi_parameter);
 	}else{
-		RunWorker(parameter,mpi_parameter,tmp_dirname);
+		RunWorker(parameter,mpi_parameter,output_filename,tmp_dirname);
 		}
 }
 
@@ -57,7 +57,7 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 		RunMaster(queries_filename,database_filename,output_filename,tmp_dirname,
 				  parameter,mpi_parameter);
 	}else{
-		RunWorkerGPU(parameter,mpi_parameter,tmp_dirname);
+		RunWorkerGPU(parameter,mpi_parameter,output_filename,tmp_dirname);
 	}
 }
 
@@ -77,9 +77,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	MasterResources resources;
 	resources.query_filename=queries_filename;
 	resources.database_filename=database_filename;
-	resources.output_filename;
-	
-	cout<<"tmpsize:"<<tmp_dirname.size()<<endl;
+	resources.output_filename=output_filename;
 	if(tmp_dirname.size()==0){
 		cout<<"tmp directory error."<<endl;
 		MPI::COMM_WORLD.Abort(1);
@@ -172,7 +170,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//***********************//
 	//Start Report Phase
 	string tmp("tmp");
-	ResultSummarizer summary(tmp_dirname);
+	ResultSummarizer summary(tmp_dirname,output_filename);
 	vector<vector<Result> > results_list;
  	AlignmentTask task;
 	summary.GatherResultMaster(resources.query_list.size(),resources.database_list.size(),
@@ -184,7 +182,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	
 }
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter,
-						  string &tmp_dirname){
+						  string &output_filename,string &tmp_dirname){
 	
 	//Worker Process Init
 #ifdef F_TIMER
@@ -254,7 +252,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	AlignerMPI aligner;
 	AlignmentTask task;
 	string tmpDir="tmp";
-	ResultSummarizer summary(tmp_dirname);
+	ResultSummarizer summary(tmp_dirname,output_filename);
 	
 	vector<vector<Result> > results_list;
 	for(;;){
@@ -342,7 +340,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 
 
 void MPICommon::RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter,
-							 string &tmp_dirname){
+							 string &output_filename, string &tmp_dirname){
 
 }
 

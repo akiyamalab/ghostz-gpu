@@ -24,7 +24,7 @@ class ResultSummarizer{
 	typedef AlignerCommon::AligningCommonParameters AligningParameters;
 	typedef MPIResource::AlignmentTask AlignmentTask;
 	typedef MPIResource::DatabaseInfo DatabaseInfo;
-	ResultSummarizer(std::string &tmpDirName);
+	ResultSummarizer(std::string &tmp_dirname,std::string &output_filename);
 
 	struct ThreadParameters{
 		int query_chunk;
@@ -66,7 +66,8 @@ class ResultSummarizer{
  private:
 	std::vector<AlignmentTask > task_list; // searched results file on each process
 	std::vector<int> size_list;            // file size of results file on each process
-	std::string tmpDirName_;          
+	std::string tmp_dirname_;
+	std::string output_filename_;
 	std::vector<int> result_target_map;   // map of query block to report phase node number
  	std::vector<std::vector<int> > result_size_map; // sizeof (query,db) 's results file
 	
@@ -87,7 +88,7 @@ class ResultSummarizer{
 	
 	std::string GetTmpFilename(AlignmentTask task){
 		std::stringstream ss;
-		ss<<tmpDirName_<<"/result"<<task.query_chunk<<"_"<<task.database_chunk;
+		ss<<tmp_dirname_<<"/result"<<task.query_chunk<<"_"<<task.database_chunk;
 		return ss.str();
 	
 	}

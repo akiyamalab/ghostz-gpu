@@ -13,7 +13,8 @@
 using namespace std;
 
 
-ResultSummarizer::ResultSummarizer(string &tmpDirName):tmpDirName_(tmpDirName){
+ResultSummarizer::ResultSummarizer(string &tmp_dirname,string &output_filename)
+	:tmp_dirname_(tmp_dirname),output_filename_(output_filename){
 	
 }
 
@@ -451,7 +452,10 @@ void ResultSummarizer::ReduceResultThread(ThreadParameters &thread_parameters){
 	vector<char *> result_data_list  = thread_parameters.result_data_list;
 	vector<int > result_size_list = thread_parameters.result_size_list;
 	unsigned int max_result = thread_parameters.parameters.max_number_results;
-	
+	stringstream ss;
+	ss<<output_filename_<<"_"<<query_chunk;
+	ofstream os(ss.str().c_str());
+	cout<<ss.str()<<endl;
 
  	cout<<"thread : "<<query_chunk<<" start."<<endl; 
 	vector<vector<Result> > results_list;
@@ -483,7 +487,7 @@ void ResultSummarizer::ReduceResultThread(ThreadParameters &thread_parameters){
 
 		//cout<<"thread : "<<query_chunk<<" "<<i<<"/"<<results_list.size()<<"/"<<results_list[i].size()<<"write"<<endl; 
 		
-			WriteOutput(cout,query_name_list[i],query_length_list[i],
+			WriteOutput(os,query_name_list[i],query_length_list[i],
 					thread_parameters.database_info,thread_parameters.parameters,
 					results_list[i]);
 		

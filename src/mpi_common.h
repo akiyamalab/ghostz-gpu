@@ -73,10 +73,10 @@ private:
 				   std::string &output_filename,std::string &tmp_dirname,
 				   AligningParameters &parameter,MPIParameter &mpi_parameter);
 	void RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter,
-				   std::string &tmp_dirname);
+				   std::string &output_filename, std::string &tmp_dirname);
 
 	void RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter,
-					  std::string &tmp_dirname);
+					  std::string &output_filename,std::string &tmp_dirname);
 	
 	void SetupMasterResources(std::string &queries_filename, std::string &database_filename,
 							  MasterResources &resources, AligningParameters &parameter,
