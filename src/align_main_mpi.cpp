@@ -40,23 +40,23 @@ int AlignMainMPI::Run(int argc, char* argv[],MPIParameter &mpi_parameter) {
 	string queries_filename;
 	string database_filename;
 	string output_filename;
-
+	string tmp_dirname;
 	//try {
 	bool ret = BuildParameters(argc, argv, queries_filename, database_filename,
-			output_filename, parameters);
+							   output_filename, tmp_dirname,parameters);
 	if (ret) {
 #ifndef GPU
 		MPICommon mpicommon;
-		mpicommon.RunGPU(queries_filename, database_filename, output_filename,
-					  parameters,mpi_parameter);
+		mpicommon.RunGPU(queries_filename, database_filename, output_filename,tmp_dirname,
+						 parameters,mpi_parameter);
 #else
 		if (parameters.number_gpus == 0) {
 			MPICommon mpicommon;
-			mpicommon.Run(queries_filename, database_filename, output_filename,
+			mpicommon.Run(queries_filename, database_filename, output_filename,tmp_dirname,
 						  parameters,mpi_parameter);
 		} else {
 			MPICommon mpicommon;
-			mpicommon.RunGPU(queries_filename, database_filename, output_filename,
+			mpicommon.RunGPU(queries_filename, database_filename, output_filename,tmp_dirname,
 							 parameters,mpi_parameter);
 		}
 #endif
@@ -75,7 +75,7 @@ int AlignMainMPI::Run(int argc, char* argv[],MPIParameter &mpi_parameter) {
 }
 
 bool AlignMainMPI::BuildParameters(int argc, char* argv[], string &input_filename,
-		string &database_filename, string &output_filename,
+								   string &database_filename, string &output_filename, string &tmp_dirname,
 		Aligner::AligningParameters &parameters) {
 	int c;
 	extern char *optarg;
@@ -111,7 +111,7 @@ bool AlignMainMPI::BuildParameters(int argc, char* argv[], string &input_filenam
 	parameters.normalized_result_gapped_extension_cutoff = 25.0;
 	parameters.max_number_results = 10;
 	parameters.max_number_one_subject_results = 1;
-	while ((c = getopt(argc, argv, "a:b:d:F:g:h:l:i:o:q:t:v:")) != -1) {
+	while ((c = getopt(argc, argv, "a:b:d:F:g:h:l:i:o:m:q:t:v:")) != -1) {
 		switch (c) {
 		case 'a':
 			parameters.number_threads = atoi(optarg);
@@ -141,6 +141,8 @@ bool AlignMainMPI::BuildParameters(int argc, char* argv[], string &input_filenam
 		case 'i':
 			input_filename = optarg;
 			break;
+		case 'm':
+			tmp_dirname = optarg;
 		case 'o':
 			output_filename = optarg;
 			break;

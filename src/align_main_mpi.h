@@ -25,8 +25,9 @@ public:
 private:
 	
 	bool BuildParameters(int argc, char* argv[], std::string &input_filename,
-			std::string &database_filename, std::string &output_filename,
-			AlignerCommon::AligningCommonParameters &parameters);
+						 std::string &database_filename, std::string &output_filename,
+						 std::string &tmp_dirname,
+						 AlignerCommon::AligningCommonParameters &parameters);
 };
 
 #endif /* ALIGN_MAIN_MPI_H_ */

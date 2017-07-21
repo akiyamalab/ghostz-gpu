@@ -38,33 +38,33 @@ using namespace std;
 
 
 void MPICommon::Run(string &queries_filename,string &database_filename,
-					string &output_filename,
+					string &output_filename,string &tmp_dirname,
 					AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	if(mpi_parameter.rank==0){
-		RunMaster(queries_filename,database_filename,output_filename,
+		RunMaster(queries_filename,database_filename,output_filename,tmp_dirname,
 				  parameter,mpi_parameter);
 	}else{
-		RunWorker(parameter,mpi_parameter);
+		RunWorker(parameter,mpi_parameter,tmp_dirname);
 		}
 }
 
 void MPICommon::RunGPU(string &queries_filename,string &database_filename,
-					string &output_filename,
-					AligningParameters &parameter,MPIParameter &mpi_parameter){
+					   string &output_filename,string &tmp_dirname,
+					   AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	if(mpi_parameter.rank==0){
-		RunMaster(queries_filename,database_filename,output_filename,
+		RunMaster(queries_filename,database_filename,output_filename,tmp_dirname,
 				  parameter,mpi_parameter);
 	}else{
-		RunWorkerGPU(parameter,mpi_parameter);
+		RunWorkerGPU(parameter,mpi_parameter,tmp_dirname);
 	}
 }
 
 
 
 void MPICommon::RunMaster(string &queries_filename,string &database_filename,
-						  string &output_filename,
+						  string &output_filename,string &tmp_dirname,
 						  AligningParameters &parameter,MPIParameter &mpi_parameter){
 #ifdef F_TIMER
 	struct timeval init_tv;
@@ -78,9 +78,19 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	resources.query_filename=queries_filename;
 	resources.database_filename=database_filename;
 	resources.output_filename;
+	
+	cout<<"tmpsize:"<<tmp_dirname.size()<<endl;
+	if(tmp_dirname.size()==0){
+		cout<<"tmp directory error."<<endl;
+		MPI::COMM_WORLD.Abort(1);
+	}
+	struct stat st;
+	mkdir(tmp_dirname.c_str(),0755);
 
-	
-	
+	if(stat(tmp_dirname.c_str(),&st)==-1){
+		cout<<"tmp directory error"<<endl;
+		MPI::COMM_WORLD.Abort(1);
+	}
 	
 	//***********************//
 	//Start Init Phase
@@ -162,7 +172,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//***********************//
 	//Start Report Phase
 	string tmp("tmp");
-	ResultSummarizer summary(tmp);
+	ResultSummarizer summary(tmp_dirname);
 	vector<vector<Result> > results_list;
  	AlignmentTask task;
 	summary.GatherResultMaster(resources.query_list.size(),resources.database_list.size(),
@@ -173,7 +183,8 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	MPI::COMM_WORLD.Barrier();	
 	
 }
-void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter){
+void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter,
+						  string &tmp_dirname){
 	
 	//Worker Process Init
 #ifdef F_TIMER
@@ -186,6 +197,13 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
 	int rank=mpi_parameter.rank;
+	struct stat st;
+	mkdir(tmp_dirname.c_str(),0755);
+
+	if(stat(tmp_dirname.c_str(),&st)==-1){
+		cout<<"tmp directory error"<<endl;
+		MPI::COMM_WORLD.Abort(1);
+	}
 	//***********************//
 	//Start Init Phase
 	
@@ -236,7 +254,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	AlignerMPI aligner;
 	AlignmentTask task;
 	string tmpDir="tmp";
-	ResultSummarizer summary(tmpDir);
+	ResultSummarizer summary(tmp_dirname);
 	
 	vector<vector<Result> > results_list;
 	for(;;){
@@ -323,7 +341,8 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 }
 
 
-void MPICommon::RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter){
+void MPICommon::RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter,
+							 string &tmp_dirname){
 
 }
 

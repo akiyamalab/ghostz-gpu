@@ -60,21 +60,23 @@ class MPICommon{
 	
 
 	void Run(std::string &queries_filename, std::string &database_filename,
-			 std::string &output_filename,
-			 AligningParameters &parameter,MPIParameter &mpi_parameter);
+			 std::string &output_filename, std::string &tmp_dirname,
+			 AligningParameters &parameter, MPIParameter &mpi_parameter);
 	void RunGPU(std::string &queries_filename,std::string &database_filename,
-				std::string &output_file,
+				std::string &output_file, std::string &tmp_dirname,
 				AligningParameters &parameter,MPIParameter &mpi_parameter);
 	static void LoadQueryResource(MasterResources &resources, int chunk_id);
 	static void UnloadQueryResource(MasterResources &resources,int chunk_id);
 private:
 	int count_terminate;
 	void RunMaster(std::string &queries_filename,std::string &database_filename,
-				   std::string &output_filename,
+				   std::string &output_filename,std::string &tmp_dirname,
 				   AligningParameters &parameter,MPIParameter &mpi_parameter);
-	void RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter);
+	void RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter,
+				   std::string &tmp_dirname);
 
-	void RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter);
+	void RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter,
+					  std::string &tmp_dirname);
 	
 	void SetupMasterResources(std::string &queries_filename, std::string &database_filename,
 							  MasterResources &resources, AligningParameters &parameter,
