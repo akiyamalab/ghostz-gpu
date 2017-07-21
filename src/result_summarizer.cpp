@@ -191,7 +191,8 @@ void ResultSummarizer::AddList(AlignmentTask task, int size){
 	size_list.push_back(size);
 
 }
-void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chunk_size){
+void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chunk_size,
+										  AligningParameters &parameters,DatabaseInfo &database_info){
 	//cout<<"query_size:"<<query_chunk_size<<endl;
 	BuildResultTargetMap(query_chunk_size,MPI::COMM_WORLD.Get_size());
 	int map_size = result_target_map.size();
@@ -228,7 +229,7 @@ void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chu
 	MPI::COMM_WORLD.Bcast(&result_size_map_vec[0],result_size_map_vec.size(),MPI::INT,0);
  
 	
-	ReduceResult(0,query_chunk_size,database_chunk_size);
+	ReduceResult(0,query_chunk_size,database_chunk_size,parameters,database_info);
 
 	
 }
@@ -240,7 +241,8 @@ void ResultSummarizer::BuildResultTargetMap(int query_chunk_size,int mpi_size){
 	}
 
 }
-void ResultSummarizer::GatherResultWorker(int rank){
+void ResultSummarizer::GatherResultWorker(int rank,AligningParameters &parameters,
+										  DatabaseInfo &database_info){
 	stringstream ss;
    	ss<<"rank"<<rank;
 	for(int i=0;i<task_list.size();i++){
@@ -284,7 +286,7 @@ void ResultSummarizer::GatherResultWorker(int rank){
 	
 	// finish sync of size list
 	
-	ReduceResult(rank,query_chunk_size,database_chunk_size);
+	ReduceResult(rank,query_chunk_size,database_chunk_size,parameters,database_info);
 	
 	
  	 
@@ -293,7 +295,8 @@ void ResultSummarizer::GatherResultWorker(int rank){
 	
 }
 
-void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_chunk_size){
+void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_chunk_size,
+									AligningParameters &parameters,DatabaseInfo &database_info){
 	int count_recv=0;
 	vector<int> my_target;
 	vector<vector<char *> > result_data_list;
@@ -331,7 +334,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		char *data ;
 		if(LoadResultFile(&data,&size,task_list[i])!=0){
 			cout<<"Error. Cannnot open tempfile."<<endl;
-		};
+		}
 		int target_rank = result_target_map[q_chunk];
 
 			   
@@ -344,7 +347,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 			MPI::Request req;
 			int tag = q_chunk * database_chunk_size + db_chunk;
 			//Send 
-			cout<<"rank "<<rank<<"("<<q_chunk<<","<<db_chunk<<")"<<" to"<<target_rank<<"  "<<size<<"byte"<<endl;
+			//cout<<"rank "<<rank<<"("<<q_chunk<<","<<db_chunk<<")"<<" to"<<target_rank<<"  "<<size<<"byte"<<endl;
 			req = MPI::COMM_WORLD.Isend(data,size,MPI::CHAR,target_rank,tag);
 			
 			req_list.push_back(req);
@@ -370,10 +373,45 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		}
 		
 	}
+	
+	
+	
 	ss.str("");
 	ss<<"rank:"<<rank<<"  ";
+	
+
+	//Check Request and Create thread;
+	std::queue<int> recv_queue;
 	for(int i=0;i<my_target.size();i++){
-		ss<<my_target[i]<<" ";
+		recv_queue.push(my_target[i]);
+	}
+	
+	while(recv_queue.size()!=0){
+		bool all_recv = true;
+		int target_query = recv_queue.front();
+		recv_queue.pop();
+		for(int i=0;i<database_chunk_size;i++){
+			all_recv&=result_data_req_list[target_query][i].Test();
+			//cout<<i<<":"<<all_recv<<endl;
+		}
+		if(all_recv){
+			//create thread.
+			ThreadParameters p;
+			p.query_chunk=target_query;
+			p.reqs = result_data_req_list[target_query];
+			p.result_data_list = result_data_list[target_query];
+			p.result_size_list = result_size_map[target_query];
+			p.parameters=parameters;
+			p.database_info=database_info;
+			threads.create_thread(boost::bind(&ResultSummarizer::ReduceResultThread,this,p));
+		}else{
+			recv_queue.push(target_query);
+		}
+		
+	}
+	for(int i=0;i<my_target.size();i++){
+		//ss<<my_target[i]<<" ";
+		
 	}
 	ss<<endl;
 	for(int i=0;i<query_chunk_size;i++){
@@ -392,41 +430,139 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 	}	
 	cout<<ss.str();
 	
-	int first_target = my_target[0];
-	vector<vector<Result> > results_list;
-	vector<vector<Result> > results_list_;
-	AlignmentTask task;
-	task.query_chunk=first_target;
-	task.database_chunk=0;
-	
-   	DeserializeResult(results_list,
-					  result_data_list[first_target][0],result_size_map[first_target][0]);
-	
-	//DeserializeResult(results_list_,
-	//				  result_data_list[first_target][1],result_size_map[first_target][1]);
-	//cout<<"rank:"<<rank<<" Q:"<<first_target<<":"<<results_list[0].size()<<endl;
-   
-	for(int i=0;i<results_list[0].size();i++){
-		//cout<<i<<endl;
-		cout<<results_list[0][i].subject_name<<":"<<results_list[0][0].query_name<<":len "<<results_list[0][0].query_length<<endl;
-		}
-	
-	
 		
-	
-	
-		
-	cout<<"rank "<<rank<<" clean up. "<<ptr_list.size()<<endl;
+	//cout<<"rank "<<rank<<" clean up. "<<ptr_list.size()<<endl;
 	for(int i=0;i<ptr_list.size();i++){
 		req_list[i].Wait();
+		
 		free(ptr_list[i]);
+		
 	}
-
+	cout<<"rank: "<<rank<<"wait join"<<endl;
+	threads.join_all();
+	
 }
 	
-void ResultSummarizer::ReduceResultThread(int target_query){
+void ResultSummarizer::ReduceResultThread(ThreadParameters &thread_parameters){
+	//std::ostream os = thread_parameters.os;
+	uint64_t database_length = thread_parameters.database_info.database_length;
+	uint64_t database_number_sequences = thread_parameters.database_info.number_sequences;
+	int query_chunk = thread_parameters.query_chunk;
+	vector<char *> result_data_list  = thread_parameters.result_data_list;
+	vector<int > result_size_list = thread_parameters.result_size_list;
+	unsigned int max_result = thread_parameters.parameters.max_number_results;
+	
+
+ 	cout<<"thread : "<<query_chunk<<" start."<<endl; 
+	vector<vector<Result> > results_list;
+	vector<string> query_name_list;
+	vector<uint32_t> query_length_list;
+	
+	for(int d=0;d<result_size_list.size();d++){
+		DeserializeResult(results_list, result_data_list[d],result_size_list[d]);
+		free(result_data_list[d]);
+	}
+	
+	query_name_list.resize(results_list.size());
+	query_length_list.resize(results_list.size());
+	
+	for(int i=0;i<results_list.size();i++){
+		if(results_list[i].size()>0){
+									
+			query_name_list[i]=results_list[i][0].query_name;
+			query_length_list[i]=results_list[i][0].query_length;
+			//cout<<i<<":"<<query_name_list[i]<<":"<<query_length_list[i]<<endl;
+		}
+	}
+
+	for(int i=0;i<results_list.size();i++){
+		//		cout<<"thread : "<<query_chunk<<" "<<i<<"/"<<results_list.size()<<"/"<<results_list[i].size()<<"sort"<<endl; 
+		stable_sort(results_list[i].begin(),results_list[i].end(),
+					AlignerCommon::ResultGreaterScore());
+		//cout<<"thread : "<<query_chunk<<","<<i<<" start."<<endl; 
+
+		//cout<<"thread : "<<query_chunk<<" "<<i<<"/"<<results_list.size()<<"/"<<results_list[i].size()<<"write"<<endl; 
+		
+			WriteOutput(cout,query_name_list[i],query_length_list[i],
+					thread_parameters.database_info,thread_parameters.parameters,
+					results_list[i]);
+		
+			//cout<<"thread : "<<query_chunk<<" "<<i<<"/"<<results_list.size()<<"/"<<results_list[i].size()<<"end"<<endl; 
+
+		/*
+		for(int j=0;j<min((int) results_list[i].size(),(int) max_result);j++){
+			cout<<query_name_list[i]<<"\tscore"<<results_list[i][j].score<<"\tdb"<<
+				results_list[i][j].database_chunk_id<<endl;
+		}
+		*/
+		
+	}
 	
 	
+	//results_list.clear();
+}
+
+void ResultSummarizer::WriteOutput(std::ostream &os,
+								   string &query_name,uint32_t query_length,
+								   DatabaseInfo &database_info,AligningParameters &parameters,
+								   vector<Result> &result_list){
+	//	cout<<"hogeee"<<endl;	   
+	unsigned int max_result = parameters.max_number_results;
+	//	cout<<"max_res:"<<max_result<<endl;
+	//cout<<"res_size:"<<result_list.size()<<endl;
+	//cout<<"query_name.size:"<<query_name.size()<<endl;
+	//cout<<"huga"<<endl;
+	Statistics::KarlinParameters gapped_karlin_parameters;
+	double alpha;
+	double beta;
+	
+	//cout<<query_name<<" len:"<<query_length<<endl;	   
+	Statistics statistics(*(parameters.aligning_sequence_type_ptr));
+    statistics.CalculateGappedKarlinParameters(parameters.score_matrix,
+											   parameters.gap_open, parameters.gap_extension,
+											   &gapped_karlin_parameters);
+    statistics.CalculateAlphaBeta(parameters.score_matrix, parameters.gap_open,
+								  parameters.gap_extension, &alpha, &beta);
+	
+	uint64_t search_space = 
+		statistics.CalculateSearchSpace(query_length,
+										database_info.database_length,
+										database_info.number_sequences, gapped_karlin_parameters,
+										alpha, beta);	
+	
+	int i=0;
+	for(vector<Result>::iterator it = result_list.begin();
+		it != result_list.end(); ++it){
+		
+		os << query_name << "\t";
+		os << it->subject_name << "\t";
+		os	<< (1.0
+				- (static_cast<float>(it->mismatches
+									  + it->gap_openings + it->gap_extensions)
+				   / static_cast<float>(it->alignment_length)))		* 100 << "\t";
+		os << it->alignment_length << "\t";
+		os << it->mismatches << "\t";
+		os << it->gap_openings << "\t";
+		os << it->start.query_position << "\t";
+		os << it->end.query_position << "\t";
+		os << it->start.database_position << "\t";
+		os << it->end.database_position << "\t";
+		os << Statistics::Nominal2EValue(it->score, search_space,
+										 gapped_karlin_parameters) << "\t";
+		os << Statistics::Nominal2Normalized(it->score,
+											 gapped_karlin_parameters);
+		os<<'\n';
+		//cout<<query_name<<":"<<i<<endl;	   
+		if(++i>=max_result){
+			break;
+		}
+
+			
+	}
+	
+
+
+
 }
 	
 

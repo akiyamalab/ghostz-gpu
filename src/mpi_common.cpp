@@ -165,7 +165,8 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	ResultSummarizer summary(tmp);
 	vector<vector<Result> > results_list;
  	AlignmentTask task;
-	summary.GatherResultMaster(resources.query_list.size(),resources.database_list.size());
+	summary.GatherResultMaster(resources.query_list.size(),resources.database_list.size(),
+							   parameter,resources.database_info);
 	
 	
 	//finalize
@@ -312,7 +313,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//End Search Phase
 	//***********************//
 	//Start Report Phase
-	summary.GatherResultWorker(rank);
+	summary.GatherResultWorker(rank,parameter,resources.database_info);
 	//End Report Phase
 
 	
