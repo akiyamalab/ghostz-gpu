@@ -61,6 +61,10 @@ int ResultSummarizer::LoadResultFile(vector<vector<Result> > &result_list,Alignm
 	delete [] data;
 	return 0;   
 }
+void ResultSummarizer::DeleteResultFile(AlignmentTask task){
+	remove(GetTmpFilename(task).c_str());
+	
+}
 
 void ResultSummarizer::SerializeResult(vector<vector<Result> > &results_list,char **ptr,int *size){
     stringstream ss;
@@ -336,6 +340,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		if(LoadResultFile(&data,&size,task_list[i])!=0){
 			cout<<"Error. Cannnot open tempfile."<<endl;
 		}
+		
 		int target_rank = result_target_map[q_chunk];
 
 			   
@@ -438,6 +443,9 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		
 		free(ptr_list[i]);
 		
+	}
+	for(int i=0;i<task_list.size();i++){
+		DeleteResultFile(task_list[i]);
 	}
 	cout<<"rank: "<<rank<<"wait join"<<endl;
 	threads.join_all();

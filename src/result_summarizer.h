@@ -72,7 +72,7 @@ class ResultSummarizer{
  	std::vector<std::vector<int> > result_size_map; // sizeof (query,db) 's results file
 	
 	
-
+	void DeleteResultFile(AlignmentTask task);
 	void ReduceResult(int rank,int query_chunk_size,int database_chunk_size,
 					  AligningParameters &parameters, DatabaseInfo &database_info);
 	void CreateReduceResultThread(boost::thread_group threads,int query_chunk,

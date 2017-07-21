@@ -176,6 +176,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	summary.GatherResultMaster(resources.query_list.size(),resources.database_list.size(),
 							   parameter,resources.database_info);
 	
+	remove(tmp_dirname.c_str());
 	
 	//finalize
 	MPI::COMM_WORLD.Barrier();	
@@ -332,7 +333,7 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	summary.GatherResultWorker(rank,parameter,resources.database_info);
 	//End Report Phase
 
-	
+	remove(tmp_dirname.c_str());
 	//finalize
 
 	MPI::COMM_WORLD.Barrier();
