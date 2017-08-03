@@ -510,7 +510,7 @@ void ResultSummarizer::ReduceResultThread(ThreadParameters &thread_parameters){
 		
 	}
 	
-	
+	os.close();
 	//results_list.clear();
 }
 

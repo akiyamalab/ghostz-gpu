@@ -83,7 +83,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 		MPI::COMM_WORLD.Abort(1);
 	}
 	struct stat st;
-	mkdir(tmp_dirname.c_str(),0755);
+	mkdir(tmp_dirname.c_str(),0777);
 
 	if(stat(tmp_dirname.c_str(),&st)==-1){
 		cout<<"tmp directory error"<<endl;
@@ -178,6 +178,11 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	
 	remove(tmp_dirname.c_str());
 	
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
+	printf("%.0f\t[ms]\tmaster: Report Phase\n",timer_second);
+#endif
 	//finalize
 	MPI::COMM_WORLD.Barrier();	
 	
@@ -186,13 +191,14 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 						  string &output_filename,string &tmp_dirname){
 	
 	//Worker Process Init
+
 #ifdef F_TIMER
 	struct timeval init_tv;
 	struct timeval tv;
 	gettimeofday(&init_tv,NULL);
 	float timer_second;
 #endif
-
+ 
 	cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
 	int rank=mpi_parameter.rank;
@@ -231,7 +237,20 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//	cout<<"rank:"<<rank<<"comm created."<<endl;
 	if(submaster){
 		//load db from filesystem
+	
+
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	printf("%.0f\t[ms]\trank:%d submaster load start\n",timer_second,rank);
+#endif
 		MPIResource::LoadDatabaseResource(resources,target_chunk);
+
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	printf("%.0f\t[ms]\trank:%d submaster load end\n",timer_second,rank);
+#endif
 
 	}
 	//Broadcast db to subgroup
@@ -334,6 +353,11 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//End Report Phase
 
 	remove(tmp_dirname.c_str());
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	printf("%.0f\t[ms]\trank:%d Report Phase\n",timer_second,rank);
+#endif
 	//finalize
 
 	MPI::COMM_WORLD.Barrier();
