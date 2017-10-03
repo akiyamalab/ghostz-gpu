@@ -21,7 +21,7 @@
 #include "reduced_alphabet_file_reader.h"
 #include "aligner.h"
 #include "aligner_gpu.h"
-
+#include <sys/stat.h>
 using namespace std;
 
 AlignMain::AlignMain() {
@@ -45,6 +45,22 @@ int AlignMain::Run(int argc, char* argv[]) {
 	bool ret = BuildParameters(argc, argv, queries_filename, database_filename,
 			output_filename, parameters);
 	if (ret) {
+	  {//check query
+	    struct stat st;
+	    if(stat(queries_filename.c_str(),&st)==-1){
+	      cerr<<"Query file does not exist."<<endl;
+	      exit(1);
+	    }
+	  }
+	  {//check database
+	    struct stat st;
+	    string inf_database= database_filename+".inf";
+	    if(stat(inf_database.c_str(),&st)==-1){
+	      cerr<<"Database file does not exist."<<endl;
+	      exit(1);
+	    }
+	  }
+
 #ifndef GPU
 		Aligner aligner;
 		aligner.Align(queries_filename, database_filename, output_filename,
