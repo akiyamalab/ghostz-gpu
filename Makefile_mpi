@@ -11,7 +11,7 @@ BOOST_PATH ?= /usr/local/
 ###
 CUDA_TOOLKIT_PATH=/usr/apps.sp3/cuda/7.5
 BOOST_PATH=${BOOST_HOME}
-MPI_PATH=/usr/apps.sp3/mpi/openmpi/1.8.2/g4.3.4_cuda7.5
+MPI_PATH=/apps/t3/sles12sp2/free/openmpi/2.1.1/gnu
 #MPI_PATH=/usr/apps.sp3/mpi/mvapich2/2.0rc1/g4.3.4_cuda7.5
 
 #----------------------------------------------#
@@ -42,8 +42,8 @@ USE_MPI	   := Yes
 
 NVCC=$(CUDA_TOOLKIT_PATH)/bin/nvcc
 MPICXX=$(MPI_PATH)/bin/mpic++
-CC=$(NVCC)
-CXX=$(NVCC)
+CC=$(MPICXX)
+CXX=$(MPICXX)
 
 INCLUDES  += -I$(BOOST_PATH)/include -I./ext/cub-1.3.2
 
