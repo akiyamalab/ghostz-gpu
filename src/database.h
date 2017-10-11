@@ -20,6 +20,8 @@
 #include "seed_searcher.h"
 #include "seed_searcher_gpu.h"
 
+#include <boost/thread.hpp>
+#include <list>
 template<typename TSeedSearcher>
 class Database {
 public:
@@ -52,10 +54,14 @@ public:
 	Database();
 	Database(std::string filename_prefix);
 	Database(std::istream &is, Parameters &parameters);
+	Database(std::istream &is, Parameters &parameters,bool parallel);
 
 	bool Load(std::string filename_prefix);
 	bool Save(std::string filename_prefix);
-
+	
+	bool BuildParallel(std::string filename_prefix,int threads);
+	
+	
 	bool SetChunk(int id);
 	void ResetChunk();
 	bool NextChunk();
@@ -156,6 +162,10 @@ private:
 	bool LoadInfomation(std::string filename_prefix);
 	bool SaveInformation(std::string filename_prefix);
 
+	bool BuildParallelThread(int chunk_id,std::vector<Sequence> &sequences,AlphabetCoder &coder,
+				 AlphabetCoder::Code sequence_delimiter,
+				 SeedSearcherParametersBuildParameters &seed_search_parameters_build_parameters);
+
 	bool all_on_memory_flag_;
 	bool saving_;
 	bool setting_informations_;
@@ -201,6 +211,22 @@ Database<TSeedSearcher>::Database(std::istream &is, Parameters &parameters) :
 }
 
 template<typename TSeedSearcher>
+Database<TSeedSearcher>::Database(std::istream &is, Parameters &parameters, bool parallel) :
+		all_on_memory_flag_(false), saving_(false), setting_informations_(
+				false), parameters_(parameters), reader_(is), filename_prefix_(
+				""), number_chunks_(0), max_sequence_length_(0), database_length_(
+				0), number_sequences_(0), sequence_delimiter_(
+				parameters.sequence_delimiter), chunk_id_(-1), preload_chunk_id_(
+				-1), next_sequence_("", "") {
+	for (size_t i = 0; i < kNumberOfChunkIds; ++i) {
+		chunk_ids_[i] = i;
+	}
+	if(!parallel){
+	BuildNextChunk();
+	}
+}
+
+template<typename TSeedSearcher>
 bool Database<TSeedSearcher>::Load(std::string filename_prefix) {
 	all_on_memory_flag_ = false;
 	saving_ = true;
@@ -225,6 +251,114 @@ bool Database<TSeedSearcher>::Save(std::string filename_prefix) {
 	setting_informations_ = true;
 	SetChunk(current_id);
 	return true;
+}
+
+template<typename TSeedSearcher>
+bool Database<TSeedSearcher>::BuildParallel(std::string filename_prefix,int n_threads){
+  filename_prefix_ = filename_prefix;
+  int current_id = 0;
+  bool build =true;
+  boost::thread_group threads;
+    std::list<boost::thread*> thread_list;
+  
+  /////////
+  chunk_id_=0;
+   
+  while(build){
+    //std::cout<<"chunk_id:"<<chunk_id_<<std::endl;
+    std::vector<Sequence> sequences;
+    AlphabetCoder coder(*(parameters_.sequence_type_ptr));
+    chunk_list_.resize(chunk_id_ + 1);
+    chunk_list_[chunk_id_] = DatabaseChunkTypePtr( new DatabaseChunkType);
+    
+    std::vector<AlphabetCoder::Code> encoded_sequences;
+    std::vector<unsigned int> encoded_sequence_offsets;
+    database_length_ += ReadSequences(sequences);
+    if (sequences.empty()) {
+      
+      build= false;
+    }
+    
+    if(build){
+      
+      for (size_t i = 0; i < sequences.size(); ++i) {
+	max_sequence_length_ = std::max(max_sequence_length_,
+					(uint32_t) (sequences[i].GetSequenceData().size()));
+      }
+      number_sequences_ += sequences.size();
+      
+      
+      
+      if (parameters_.chunk_build_option
+	  == Database<TSeedSearcher>::ChunkBuildOptionAllBuild
+	  || parameters_.chunk_build_option == (chunk_id_ + 1)) {
+	if(thread_list.size()>=n_threads){
+	  thread_list.front()->join();
+	  thread_list.pop_front();
+	  
+	}
+	
+	
+	
+	std::cout<<"build chunk:"<<chunk_id_<<std::endl; 
+	boost::thread *t = threads.create_thread(boost::bind(&Database::BuildParallelThread,this,
+							     chunk_id_,sequences,coder,
+							     parameters_.sequence_delimiter,
+							     parameters_.seed_search_parameters_build_parameters));
+	thread_list.push_back(t);
+	// t->join();
+	/*
+	  chunk_list_[chunk_id_]->Build(sequences, coder,
+	  parameters_.sequence_delimiter,
+	  parameters_.seed_search_parameters_build_parameters);
+	  
+	  
+	  
+	  std::cout<<"save chunk:"<<chunk_id_<<std::endl;
+	  std::stringstream ss;
+	  ss << filename_prefix_ << "_" << GetChunkId();
+	  std::cout<<ss.str()<<std::endl;
+	  chunk_list_[chunk_id_]->Save(ss.str());
+	  
+	*/
+	
+      } else {
+	std::cout<<"skip chunk:"<<chunk_id_<<std::endl;
+	chunk_list_[chunk_id_]->Clear();
+      }
+      
+      ++chunk_id_;
+      build=true;
+    }
+  }
+  threads.join_all();
+  
+  number_chunks_=chunk_id_;
+  SaveInformation(filename_prefix_);
+  saving_ = true;
+  setting_informations_ = true;
+  SetChunk(current_id);
+  return true;
+  
+}
+
+template<typename TSeedSearcher>
+bool Database<TSeedSearcher>::BuildParallelThread(int chunk_id,
+						  std::vector<Sequence> &sequences,AlphabetCoder &coder,
+						  AlphabetCoder::Code sequence_delimiter,
+						  SeedSearcherParametersBuildParameters &seed_search_parameters_build_parameters)
+{
+  DatabaseChunkTypePtr chunk = DatabaseChunkTypePtr( new DatabaseChunkType);
+  chunk->Build(sequences, coder,
+	       parameters_.sequence_delimiter,
+	       parameters_.seed_search_parameters_build_parameters);
+  
+    std::stringstream ss;
+  ss << filename_prefix_ << "_" << chunk_id;
+  chunk->Save(ss.str());
+  chunk->Clear();
+  sequences.clear();
+   return true;
 }
 
 template<typename TSeedSearcher>
@@ -414,6 +548,7 @@ bool Database<TSeedSearcher>::SaveInformation(std::string filename_prefix) {
 	out.write((char *) &number_sequences_, sizeof(number_sequences_));
 	out.write((char *) &sequence_delimiter_, sizeof(sequence_delimiter_));
 	out.close();
+
 	return true;
 }
 

@@ -56,6 +56,7 @@ Command and Options
       -l INT    Chunk size of the database (bytes) [1073741824 (=1GB)]
       -L INT    Length of a subsequence for clustering [10]
       -s INT    The seed threshold [39]
+      -a INT	The number of threads [1]
 
 
 `aln`:  Search homologues of queries from database

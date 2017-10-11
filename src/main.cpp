@@ -19,8 +19,8 @@ void PrintUsage() {
 					"Command and Options\n"
 					"db: convert a FASTA file to GHOSTX format database files\n"
 					"\n"
-					"  ghostz_gpu db [-i dbFastaFile] [-o dbName] [-C clustering][-l chunkSize]\n"
-					"            [-L clusteringSubsequenceLength]  [-s seedThreshold]\n"
+					"  ghostz_gpu db [-i dbFastaFile] [-o dbName] [-C clustering] [-l chunkSize]\n"
+					"            [-L clusteringSubsequenceLength] [-s seedThreshold] [-a numThreads]\n"
 					"\n"
 					"  Options:\n"
 					"  (Required)\n"
@@ -32,6 +32,7 @@ void PrintUsage() {
 					"    -l INT    Chunk size of the database (bytes) [1073741824 (=1GB)]\n"
 					"    -L INT    Length of a subsequence for clustering [10]\n"
 					"    -s INT    The seed threshold [39]\n"
+			                "    -a INT    The number of threads [1]\n"
 					"\n"
 					"\n"
 					"aln:  Search homologues of queries from database\n"
@@ -66,7 +67,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (strcmp(argv[1], "db") == 0) {
-		DatabaseBuildMain main;
+	        DatabaseBuildMain main;
 		return main.Run(argc - 1, argv + 1);
 	} else if (strcmp(argv[1], "aln") == 0) {
 		AlignMain main;

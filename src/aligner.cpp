@@ -43,21 +43,42 @@ void Aligner::BuildDatabase(string &input_filename, string &database_filename,
 	ifstream is(input_filename.c_str());
 	if (!is) {
 		logger->ErrorLog("invalid input filename");
+		exit(1);
 	}
-	DatabaseType database(is, database_parameters);
-	if (database.GetChunkId() < 0) {
-		logger->ErrorLog("invalid input file or parameters");
-	} else {
-		stringstream ss;
-		database.Save(database_filename);
-		ss.str("");
-		ss << "number chunks is " << database.GetNumberChunks() << endl;
-		ss << "number of sequences is " << database.GetNumberTotalSequences()
-				<< endl;
-		ss << "total size is " << database.GetDatabaseTotalLenght();
-		logger->Log(ss.str());
+	
+	if(paramters.number_threads<2){
+	  
+	  DatabaseType database(is, database_parameters);
+	  if (database.GetChunkId() < 0) {
+	    logger->ErrorLog("invalid input file or parameters");
+	  } else {
+	    stringstream ss;
+	    database.Save(database_filename);
+	    ss.str("");
+	    ss << "number chunks is " << database.GetNumberChunks() << endl;
+	    ss << "number of sequences is " << database.GetNumberTotalSequences()
+	       << endl;
+	    ss << "total size is " << database.GetDatabaseTotalLenght();
+	    logger->Log(ss.str());
+	  }
+	  is.close();
+	}else{
+	  //parallel db build
+	  cout<<paramters.number_threads<<" threads"<<endl;
+	  DatabaseType database(is, database_parameters,true);
+	 
+	  stringstream ss;
+	  database.BuildParallel(database_filename,paramters.number_threads);
+	  ss.str("");
+	  ss << "number chunks is " << database.GetNumberChunks() << endl;
+	  ss << "number of sequences is " << database.GetNumberTotalSequences()
+	     << endl;
+	  ss << "total size is " << database.GetDatabaseTotalLenght();
+	  logger->Log(ss.str());
+	  
+	  is.close();
 	}
-	is.close();
+
 }
 
 void Aligner::Align(string &queries_filename, string &database_filename,

@@ -11,7 +11,7 @@
 #include <string>
 
 namespace common {
-static const std::string kVersion = "1.0.1";
+static const std::string kVersion = "1.1.0";
 
 }
 
