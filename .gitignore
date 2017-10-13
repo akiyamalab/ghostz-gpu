@@ -1,0 +1,5 @@
+*.o
+*~
+\#*
+ghostz
+ghostz-gpu
