@@ -66,6 +66,7 @@ public:
 	void ResetChunk();
 	bool NextChunk();
 #ifdef F_MPI
+	Database(MPIResource::DatabaseInfo &database_info);
 	Database(MPIResource::DatabaseResource &database_resource,MPIResource::DatabaseInfo &database_info);
 	bool SetChunk(MPIResource::DatabaseResource &database_resource);
 #endif
@@ -232,6 +233,27 @@ all_on_memory_flag_(false), saving_(false), setting_informations_(true),
 	SetChunk(database_resource);
 	
 }
+
+
+template<typename TSeedSearcher>
+Database<TSeedSearcher>::Database(MPIResource::DatabaseInfo &database_info):
+all_on_memory_flag_(false), saving_(false), setting_informations_(true),
+	next_sequence_("",""),load_from_memory_flag_(true)
+{
+	number_chunks_       = database_info.number_chunks;
+	max_sequence_length_ = database_info.max_sequence_length;
+	database_length_     = database_info.database_length;
+	number_sequences_    = database_info.number_sequences;
+	sequence_delimiter_  = database_info.sequence_delimiter;
+	//chunk_id_ = database_resource.chunk_id;
+	for (size_t i = 0; i < kNumberOfChunkIds; ++i) {
+		chunk_ids_[i] = i;
+	}
+
+	
+}
+
+
 template<typename TSeedSearcher>
 bool Database<TSeedSearcher>::SetChunk(MPIResource::DatabaseResource &database_resource){
 	all_on_memory_flag_=false;

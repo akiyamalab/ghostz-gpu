@@ -6,6 +6,7 @@
 
 #include "mpi_common.h"
 #include "aligner_mpi.h"
+#include "aligner_gpu_mpi.h"
 #include "fasta_sequence_reader.h"
 #include "protein_type.h"
 #include "dna_type.h"
@@ -42,11 +43,12 @@ void MPICommon::Run(string &queries_filename,string &database_filename,
 					AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	if(mpi_parameter.rank==0){
-		RunMaster(queries_filename,database_filename,output_filename,tmp_dirname,
+	    RunMaster(queries_filename,database_filename,output_filename,tmp_dirname,
 				  parameter,mpi_parameter);
 	}else{
-		RunWorker(parameter,mpi_parameter,output_filename,tmp_dirname);
-		}
+		bool useGPU=false;
+		RunWorker(parameter,mpi_parameter,output_filename,tmp_dirname,useGPU);
+	}
 }
 
 void MPICommon::RunGPU(string &queries_filename,string &database_filename,
@@ -57,7 +59,8 @@ void MPICommon::RunGPU(string &queries_filename,string &database_filename,
 		RunMaster(queries_filename,database_filename,output_filename,tmp_dirname,
 				  parameter,mpi_parameter);
 	}else{
-		RunWorkerGPU(parameter,mpi_parameter,output_filename,tmp_dirname);
+		bool useGPU=true;
+	    RunWorker(parameter,mpi_parameter,output_filename,tmp_dirname,useGPU);
 	}
 }
 
@@ -100,7 +103,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
 	printf("%.0f\t[ms]\tmaster: SetupResource\n",timer_second);
 #endif
-#if 0
+#if 0 
 	
 	for(int i=0;i<resources.query_list.size();i++){
 		cout<<resources.query_list[i].chunk_id;
@@ -188,7 +191,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	
 }
 void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter,
-						  string &output_filename,string &tmp_dirname){
+			  string &output_filename,string &tmp_dirname,bool useGPU){
 	
 	//Worker Process Init
 
@@ -258,7 +261,16 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
 	//cout<<"rank:"<<rank<<"db recved."<<endl;
 
-	DatabaseType database(resources.database_list[target_chunk],resources.database_info);
+	DatabaseType database(resources.database_info);
+	DatabaseTypeGpu database_gpu(resources.database_info);
+	
+	if(useGPU){
+		database_gpu.SetChunk(resources.database_list[target_chunk]);
+		//DatabaseTypeGpu database_gpu(resources.database_list[target_chunk],resources.database_info);
+	}else{
+		database.SetChunk(resources.database_list[target_chunk]);
+		//DatabaseType database(resources.database_list[target_chunk],resources.database_info);
+	}
 	//DatabaseType database_(resources.database_filename);
 	//cout<<"database.GetChunkId = "<<database.GetChunkId()<<endl;
 #ifdef F_TIMER
@@ -269,7 +281,10 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	//End Init Phase
 	//***********************//
 	//Start Search Phase
+
 	AlignerMPI aligner;
+	AlignerGpuMPI aligner_g;
+	
 	AlignmentTask task;
 	string tmpDir="tmp";
 	ResultSummarizer summary(tmp_dirname,output_filename);
@@ -295,16 +310,24 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 			target_chunk=task.database_chunk;
 			//cout<<"rank:"<<rank<<" load db:"<<target_chunk<<endl;
 			MPIResource::LoadDatabaseResource(resources,target_chunk);
-			database.SetChunk(resources.database_list[target_chunk]);
-			//cout<<"rank:"<<rank<<" end Loading."<<endl;
+			if(useGPU){
+				database_gpu.SetChunk(resources.database_list[target_chunk]);
+			}else{
+				database.SetChunk(resources.database_list[target_chunk]);
+			}//cout<<"rank:"<<rank<<" end Loading."<<endl;
 		}
 		
 		if(!resources.query_list[task.query_chunk].available){
 			MPIResource::RequestQuery(resources,task.query_chunk);
 		}
-		aligner.Search(resources.query_list[task.query_chunk],
+		if(useGPU){
+			
+			aligner_g.Search(resources.query_list[task.query_chunk],
+						   database_gpu,results_list,parameter,mpi_parameter);
+		}else{
+			aligner.Search(resources.query_list[task.query_chunk],
 					   database,results_list,parameter,mpi_parameter);
-		
+		}
 		MPIResource::UnloadQueryResource(resources,task.query_chunk);
 		summary.SaveResultFile(results_list,task);
 			
@@ -320,19 +343,18 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	
 	
 	Aligner aligner_;
-	string q_name=string("/work1/t2ggenome/goto/work/ghostz/mpi/test/query/ERR315856.fasta_randN1k");
+	
 	string out_name = string("out");
-	//
-	//	aligner_.Align(q_name,  resources.database_filename,out_name,parameter);
 	for(int i=0;i<results_list.size();i++){
 		for(int j=0;j<results_list[i].size();j++){
 			//cout<<results_list[i][j].subject_name<<endl;
-		}}
+		}
+	}
 	//unload resources;
 	MPIResource::UnloadDatabaseResource(resources,target_chunk);
-   /*
-	for(int i=0;i<resources.query_list.size();i++){
-		if(resources.query_list[i].size>0){
+	/*
+	  for(int i=0;i<resources.query_list.size();i++){
+	  if(resources.query_list[i].size>0){
 			cout<<"rank:"<<rank<<" query:"<<i<<"  True "<<resources.query_list[i].size<<endl;
 		}else{
 			cout<<"rank:"<<rank<<" query:"<<i<<"  False"<<endl;
@@ -364,17 +386,14 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 }
 
 
-void MPICommon::RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter,
-							 string &output_filename, string &tmp_dirname){
 
-}
 
 void MPICommon::SetupMasterResources(string &queries_filename,string &database_filename,
 									 MasterResources &resources,AligningParameters &parameter,
 									 MPIParameter &mpi_parameter){
 	//init query resource
-	vector<int> pointer_list;
-	vector<int> size_list;
+	vector<uint64_t> pointer_list;
+	vector<uint64_t> size_list;
 	struct stat st;
 	if(stat(queries_filename.c_str(),&st)==-1){
 		cerr<<"Query file does not exist. Abort."<<endl;
@@ -479,8 +498,8 @@ void MPICommon::SetupWorkerResources(WorkerResources &resources,MPIParameter &mp
 	
 	
 }
-void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &chunk_pointer_list,
-										vector<int> &chunk_size_list,AligningParameters &parameter){
+void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<uint64_t> &chunk_pointer_list,
+										vector<uint64_t> &chunk_size_list,AligningParameters &parameter){
 	
 	ifstream isf(queries_filename.c_str());
 	Queries::Parameters queries_parameters;
@@ -504,7 +523,7 @@ void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<int> &ch
 		   
 			}*/
 	
-		int size=isf_ptr-begin;
+		uint64_t size=isf_ptr-begin;
 		char *array = new char[size];
 		isf.clear();
 

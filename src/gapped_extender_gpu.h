@@ -22,7 +22,7 @@ public:
 		int h;
 		int e;
 	};
-	static const size_t kMaxSequence0Length = 1 << 6;
+	static const size_t kMaxSequence0Length = 1 << 7;// should be set in Makefile?
 	static const int kInitScore = -(1 << 10);
 
 	GappedExtenderGpu();

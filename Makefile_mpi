@@ -169,7 +169,9 @@ MPI_SRC=./src/mpi_main.cpp \
 	./src/aligner_presearch_thread_mpi.cpp \
 	./src/aligner_build_results_thread_mpi.cpp \
 	./src/load_balancer.cpp \
-	./src/result_summarizer.cpp 
+	./src/result_summarizer.cpp \
+	./src/aligner_gpu_mpi.cpp \
+	./src/aligner_gpu_presearch_thread_mpi.cpp
 
 
 

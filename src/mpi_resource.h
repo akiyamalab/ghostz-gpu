@@ -23,8 +23,8 @@ class MPIResource{
 	
 	struct QueryResource{
         char *data;
-        int ptr;
-        uint64_t size;
+        uint64_t ptr;
+        int size;
         int chunk_id;
         bool available;
     };

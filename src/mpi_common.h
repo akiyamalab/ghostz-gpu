@@ -1,4 +1,4 @@
-/*
+ /*
  * mpi_common.h
  * Created on 2017/05/16
  *    Auther:goto
@@ -56,7 +56,7 @@ class MPICommon{
 	typedef AlignerCommon::AligningCommonParameters AligningParameters;
 	typedef AlignerCommon::Result Result;
 	typedef Database<SeedSearcher> DatabaseType;
-	
+	typedef Database<SeedSearcherGpu> DatabaseTypeGpu;
 	
 
 	void Run(std::string &queries_filename, std::string &database_filename,
@@ -73,11 +73,9 @@ private:
 				   std::string &output_filename,std::string &tmp_dirname,
 				   AligningParameters &parameter,MPIParameter &mpi_parameter);
 	void RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter,
-				   std::string &output_filename, std::string &tmp_dirname);
+				   std::string &output_filename, std::string &tmp_dirname,bool useGPU);
 
-	void RunWorkerGPU(AligningParameters &parameter,MPIParameter &mpi_parameter,
-					  std::string &output_filename,std::string &tmp_dirname);
-	
+
 	void SetupMasterResources(std::string &queries_filename, std::string &database_filename,
 							  MasterResources &resources, AligningParameters &parameter,
 							  MPIParameter &mpi_parameter);
@@ -89,8 +87,8 @@ private:
 	
 	
 	void BuildQueryChunkPointers(std::string &queries_filename,
-								 std::vector<int> &chunk_pointer_list,
-								 std::vector<int> &chunk_size_list,AligningParameters &parameter);
+								 std::vector<uint64_t> &chunk_pointer_list,
+								 std::vector<uint64_t> &chunk_size_list,AligningParameters &parameter);
 	
 	
 	
