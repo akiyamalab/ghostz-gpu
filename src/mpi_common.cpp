@@ -288,15 +288,21 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 	AlignmentTask task;
 	string tmpDir="tmp";
 	ResultSummarizer summary(tmp_dirname,output_filename);
-	
+	uint64_t timer_align=0 ,timer_align_start,timer_align_end;
+	uint64_t timer_task=0, timer_task_start, timer_task_end;
 	vector<vector<Result> > results_list;
 	for(;;){
 		int task_query=0,task_db=0;
+#ifdef F_TIMER
+		gettimeofday(&tv,NULL);
+		timer_task_start = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+#endif
 		MPIResource::RequestTask(target_chunk,task);
 		task_query=task.query_chunk;
 		task_db=task.database_chunk;
-	
-		//cout<<"rank:"<<rank<<" recv: "<<task_query<<","<<task_db<<endl;
+		
+
+	//cout<<"rank:"<<rank<<" recv: "<<task_query<<","<<task_db<<endl;
 
 		if(task.query_chunk==-1){
 			cout<<"break rank:"<<rank<<endl;
@@ -320,6 +326,18 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 		if(!resources.query_list[task.query_chunk].available){
 			MPIResource::RequestQuery(resources,task.query_chunk);
 		}
+
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+   
+	timer_align_start = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	timer_task_end=timer_align_start;
+	timer_task+=timer_task_end - timer_task_start;
+	
+	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	printf("%.0f\t[ms]\trank:%d Start Task\n",timer_second,rank);
+#endif
+
 		if(useGPU){
 			
 			aligner_g.Search(resources.query_list[task.query_chunk],
@@ -328,6 +346,12 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 			aligner.Search(resources.query_list[task.query_chunk],
 					   database,results_list,parameter,mpi_parameter);
 		}
+#ifdef F_TIMER
+	gettimeofday(&tv,NULL);
+	timer_align_end = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+	timer_align+= timer_align_end-timer_align_start;
+#endif
+
 		MPIResource::UnloadQueryResource(resources,task.query_chunk);
 		summary.SaveResultFile(results_list,task);
 			
@@ -340,7 +364,10 @@ void MPICommon::RunWorker(AligningParameters &parameter,MPIParameter &mpi_parame
 #endif
 	}
 	
-	
+#ifdef F_TIMER
+	cout<<"rank:"<<rank<<"\tCumulative Effective Search Time : "<<timer_align<< " [ms]"<<endl;
+	cout<<"rank:"<<rank<<"\tCumulative Task Recv Time : "<<timer_task<<" [ms]"<<endl;
+#endif
 	
 	Aligner aligner_;
 	
