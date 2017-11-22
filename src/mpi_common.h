@@ -72,16 +72,24 @@ private:
 	void RunMaster(std::string &queries_filename,std::string &database_filename,
 				   std::string &output_filename,std::string &tmp_dirname,
 				   AligningParameters &parameter,MPIParameter &mpi_parameter);
-	void RunWorker(AligningParameters &parameter,MPIParameter &mpi_parameter,
-				   std::string &output_filename, std::string &tmp_dirname,bool useGPU);
+	void RunWorker(std::string &queries_filename,std::string &database_filename,
+				   std::string &output_filename,std::string &tmp_dirname,
+				   AligningParameters &parameter,MPIParameter &mpi_parameter,
+				   bool useGPU);
+	
 
-
-	void SetupMasterResources(std::string &queries_filename, std::string &database_filename,
+	void SetupDatabaseResourcesMaster(std::string &queries_filename, std::string &database_filename,
 							  MasterResources &resources, AligningParameters &parameter,
 							  MPIParameter &mpi_parameter);
 	
-	void SetupWorkerResources(WorkerResources &resources,MPIParameter &mpi_parameter);
+	void SetupDatabaseResourcesWorker(WorkerResources &resources,
+									  AligningParameters &parameter,MPIParameter &mpi_parameter);
 
+	void SetupQueryResourcesMaster(std::string &queries_filename,MasterResources &resources,
+								   AligningParameters &parameter,MPIParameter &mpi_parameter);
+	
+	void SetupQueryResourcesWorker(WorkerResources &resources,
+								   AligningParameters &parameter,MPIParameter &mpi_parameter);
 	
 	void AcceptCommand(MasterResources &resources,LoadBalancer &balancer);
 	
@@ -89,6 +97,7 @@ private:
 	void BuildQueryChunkPointers(std::string &queries_filename,
 								 std::vector<uint64_t> &chunk_pointer_list,
 								 std::vector<uint64_t> &chunk_size_list,AligningParameters &parameter);
+	
 	
 	
 	
