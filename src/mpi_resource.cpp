@@ -147,49 +147,47 @@ int MPIResource::SendQuery(QueryResource &query_resource, MPI::Intercomm comm, i
 
 
 void MPIResource::LoadQueryResource(MasterResources &resources,int chunk_id){
-	
-    if(chunk_id > resources.query_list.size()){
+	LoadQueryResources(resources.query_list,resources.query_filename,chunk_id);
+}
+void MPIResource::LoadQueryResource(WorkerResources &resources,int chunk_id){
+	LoadQueryResources(resources.query_list,resources.query_filename,chunk_id);
+}
+
+void MPIResource::LoadQueryResources(vector<QueryResource> &query_list,string &query_filename,int chunk_id){
+	if(chunk_id >query_list.size()){
         cerr<<"query chunk id error:"<<chunk_id<<endl;
         MPI_Abort(MPI_COMM_WORLD,1);
     }
-    if(resources.query_list[chunk_id].available){
+    if(query_list[chunk_id].available){
         return ;
     }
-    resources.query_list[chunk_id].data
-        = new char[resources.query_list[chunk_id].size];
+	query_list[chunk_id].data
+	   = new char[query_list[chunk_id].size];
 
-    ifstream in(resources.query_filename.c_str());
-    in.seekg(resources.query_list[chunk_id].ptr);
-    in.read(resources.query_list[chunk_id].data,resources.query_list[chunk_id].size);
+    ifstream in(query_filename.c_str());
+    in.seekg(query_list[chunk_id].ptr);
+    in.read(query_list[chunk_id].data,query_list[chunk_id].size);
     in.close();
-    resources.query_list[chunk_id].available=true;
-    //cout<<"query_chunk:"<<chunk_id<<"loaded."<<endl;
+    query_list[chunk_id].available=true;
 }
 
 void MPIResource::UnloadQueryResource(MasterResources &resources,int chunk_id){
-	if(chunk_id > resources.query_list.size()){
-        cerr<<"query chunk id error:"<<chunk_id<<endl;
-        MPI_Abort(MPI_COMM_WORLD,1);
-    }
-    if(!resources.query_list[chunk_id].available){
-        return ;
-    }
-
-    delete [] resources.query_list[chunk_id].data;
-    resources.query_list[chunk_id].available=false;
-
+	UnloadQueryResources(resources.query_list,chunk_id);
 }
 void MPIResource::UnloadQueryResource(WorkerResources &resources,int chunk_id){
-	if(chunk_id > resources.query_list.size()){
+	UnloadQueryResources(resources.query_list,chunk_id);
+}
+void MPIResource::UnloadQueryResources(vector<QueryResource> &query_list,int chunk_id){
+	if(chunk_id > query_list.size()){
         cerr<<"query chunk id error:"<<chunk_id<<endl;
         MPI_Abort(MPI_COMM_WORLD,1);
     }
-    if(!resources.query_list[chunk_id].available){
+    if(!query_list[chunk_id].available){
         return ;
     }
 
-    delete [] resources.query_list[chunk_id].data;
-    resources.query_list[chunk_id].available=false;
+    delete [] query_list[chunk_id].data;
+    query_list[chunk_id].available=false;
 	
 }
 

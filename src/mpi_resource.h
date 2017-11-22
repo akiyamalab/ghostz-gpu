@@ -75,6 +75,7 @@ class MPIResource{
 		
     };
     struct WorkerResources{
+		std::string query_filename;
 		std::vector<QueryResource> query_list;
 		std::string database_filename;
 		DatabaseInfo database_info;
@@ -108,6 +109,7 @@ class MPIResource{
 	static int RecvQuery(QueryResource &query_resource, MPI::Intercomm comm,int src_rank);
 	static int SendQuery(QueryResource &query_resource, MPI::Intercomm comm,int dst_rank);
 	static void LoadQueryResource(MasterResources &resources, int chunk_id);
+	static void LoadQueryResource(WorkerResources &resources, int chunk_id);
 	static void UnloadQueryResource(MasterResources &resources, int chunk_id);
 	static void UnloadQueryResource(WorkerResources &resources, int chunk_id);
 	static void LoadDatabaseInfo(DatabaseInfo &database_info,std::string database_info_filename);
@@ -115,6 +117,10 @@ class MPIResource{
 	static void UnloadDatabaseResource(WorkerResources &resources , int chunk_id);
 	
 	static void loadFileData(std::string filename, char **ptr, uint64_t *size);
+	
+ protected :
+	static void LoadQueryResources(std::vector<QueryResource> &query_list, std::string &query_filename, int chunk_id);
+	static void UnloadQueryResources(std::vector<QueryResource> &query_list, int chunk_id);
 	
 };
 
