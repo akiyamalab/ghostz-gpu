@@ -184,6 +184,8 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
  
 	cout<<"worker start:"<<mpi_parameter.rank<<endl;
 	WorkerResources resources;
+	resources.query_filename=queries_filename;
+
 	int rank=mpi_parameter.rank;
 	struct stat st;
 	mkdir(tmp_dirname.c_str(),0755);
@@ -233,6 +235,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	uint64_t timer_align=0 ,timer_align_start,timer_align_end;
 	uint64_t timer_task=0, timer_task_start, timer_task_end;
 	vector<vector<Result> > results_list;
+	bool query_direct_load=true;
 	for(;;){
 		int task_query=0,task_db=0;
 #ifdef F_TIMER
@@ -267,7 +270,11 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 		}
 		
 		if(!resources.query_list[task.query_chunk].available){
-			MPIResource::RequestQuery(resources,task.query_chunk);
+			if(query_direct_load){
+				MPIResource::LoadQueryResource(resources,task.query_chunk);
+			}else{
+				MPIResource::RequestQuery(resources,task.query_chunk);
+			}
 		}
 
 #ifdef F_TIMER
