@@ -16,7 +16,7 @@
 #include "mpi.h"
 #include <string>
 #include <fstream>
-
+#include <sys/time.h>
 class MPICommon{
  public:
 	struct MPIParameter{
@@ -78,11 +78,11 @@ private:
 				   bool useGPU);
 	
 
-	void SetupDatabaseResourcesMaster(std::string &queries_filename, std::string &database_filename,
+	void SetupDatabaseResourcesMaster(std::string &database_filename,
 							  MasterResources &resources, AligningParameters &parameter,
 							  MPIParameter &mpi_parameter);
 	
-	void SetupDatabaseResourcesWorker(WorkerResources &resources,
+	void SetupDatabaseResourcesWorker(std::string &database_filename,WorkerResources &resources,
 									  AligningParameters &parameter,MPIParameter &mpi_parameter);
 
 	void SetupQueryResourcesMaster(std::string &queries_filename,MasterResources &resources,
@@ -100,6 +100,9 @@ private:
 	
 	
 	
+	double timevalToMillisec(struct timeval t){
+		return (t.tv_sec *1000.0 + t.tv_usec* 0.001);
+	}
 	
 };
 

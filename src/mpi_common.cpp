@@ -75,7 +75,6 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	struct timeval init_tv;
 	struct timeval tv;
 	gettimeofday(&init_tv,NULL);
-	float timer_second;
 #endif
 	//Master Process Init
 	cout<<"master start:"<<mpi_parameter.rank<<endl;
@@ -99,12 +98,14 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	//Start Init Phase
 
 	
-	SetupDatabaseResourcesMaster(queries_filename,database_filename,resources,parameter,mpi_parameter);
-#ifdef F_TIMER
+	SetupDatabaseResourcesMaster(database_filename,resources,parameter,mpi_parameter);
+#ifdef F_TIMER 
 	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
-	printf("%.0f\t[ms]\tmaster: SetupResource\n",timer_second);
+	printf("%.0lf\t[ms]\tmaster: SetupResource\n",timevalToMillisec(tv)-timevalToMillisec(init_tv));
 #endif
+	
+	
+	SetupQueryResourcesMaster(queries_filename,resources,parameter,mpi_parameter);
 #if 0 
 	
 	for(int i=0;i<resources.query_list.size();i++){
@@ -114,28 +115,12 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	}
 #endif
 	
-
-	//Create Subgroup comm
-	for(int i=0;i<resources.database_list.size();i++){
-		MPI::COMM_WORLD.Split(1,0);
-	}
-	
-	SetupQueryResourcesMaster(queries_filename,resources,parameter,mpi_parameter);
-	
-	for(int i=0;i<resources.query_list.size();i++){
-		MPIResource::LoadQueryResource(resources,i);
-		
-	}   //loading all query on master memory
-	
-	//	cout<<resources.query_list[0].data;
-	
 	
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
-	printf("%.0f\t[ms]\tmaster: Init Phase\n",timer_second);
+	printf("%.0lf\t[ms]\tmaster: Init Phase\n",timevalToMillisec(tv)-timevalToMillisec(init_tv));
 #endif
-   //End Init Phase
+	//End Init Phase
 	//***********************//
 	//Start Search Phase 
 	int task_remain=0;
@@ -161,8 +146,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
-	printf("%.0f\t[ms]\tmaster: Search Phase\n",timer_second);
+	printf("%.0lf\t[ms]\tmaster: Search Phase\n",timevalToMillisec(tv)-timevalToMillisec(init_tv));
 #endif
 	MPI::COMM_WORLD.Barrier();
 	//End Search Phase
@@ -179,8 +163,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;	
-	printf("%.0f\t[ms]\tmaster: Report Phase\n",timer_second);
+	printf("%.0lf\t[ms]\tmaster: Report Phase\n",timevalToMillisec(tv)-timevalToMillisec(init_tv));
 #endif
 	//finalize
 	MPI::COMM_WORLD.Barrier();	
@@ -197,7 +180,6 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	struct timeval init_tv;
 	struct timeval tv;
 	gettimeofday(&init_tv,NULL);
-	float timer_second;
 #endif
  
 	cout<<"worker start:"<<mpi_parameter.rank<<endl;
@@ -213,73 +195,30 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	//***********************//
 	//Start Init Phase
 	
-	SetupDatabaseResourcesWorker(resources,parameter,mpi_parameter);
+	SetupDatabaseResourcesWorker(database_filename,resources,parameter,mpi_parameter);
 
 	//Create subgroup comm
 	
 	int db_chunk_size = resources.database_list.size();
-	bool submaster = false;
 	int target_chunk=(rank-1)%db_chunk_size;
-	if(target_chunk==rank-1){
-		submaster =true;
-	}
 	
-	for(int i=0;i<db_chunk_size;i++){
-		if(i==target_chunk){
-			if(submaster){
-				resources.subgroup_comm = MPI::COMM_WORLD.Split(0,0);
-			}else{
-				resources.subgroup_comm = MPI::COMM_WORLD.Split(0,rank);
-			}
-		}else{
-			MPI::COMM_WORLD.Split(1,rank);
-		}
-	}
-	//	cout<<"rank:"<<rank<<"comm created."<<endl;
-	if(submaster){
-		//load db from filesystem
 	
-
-#ifdef F_TIMER
-		gettimeofday(&tv,NULL);
-		timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-		printf("%.0f\t[ms]\trank:%d submaster load start\n",timer_second,rank);
-#endif
-		MPIResource::LoadDatabaseResource(resources,target_chunk);
-		
-#ifdef F_TIMER
-		gettimeofday(&tv,NULL);
-		timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-		printf("%.0f\t[ms]\trank:%d submaster load end\n",timer_second,rank);
-#endif
-
-	}
-	//Broadcast db to subgroup
-	uint64_t sum =0;
-	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
-	//cout<<"rank:"<<rank<<"db recved."<<endl;
-
 	DatabaseType database(resources.database_info);
 	DatabaseTypeGpu database_gpu(resources.database_info);
 	
 	if(useGPU){
 		database_gpu.SetChunk(resources.database_list[target_chunk]);
-		//DatabaseTypeGpu database_gpu(resources.database_list[target_chunk],resources.database_info);
 	}else{
 		database.SetChunk(resources.database_list[target_chunk]);
-		//DatabaseType database(resources.database_list[target_chunk],resources.database_info);
 	}
-	//DatabaseType database_(resources.database_filename);
-	//cout<<"database.GetChunkId = "<<database.GetChunkId()<<endl;
-
+	
 	SetupQueryResourcesWorker(resources,parameter,mpi_parameter);
 
 
 
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-	printf("%.0f\t[ms]\trank:%d Init Phase\n",timer_second,rank);
+	printf("%.0lf\t[ms]\trank:%d Init Phase\n",timevalToMillisec(tv)-timevalToMillisec(init_tv),rank);
 #endif
 	//End Init Phase
 	//***********************//
@@ -299,6 +238,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 #ifdef F_TIMER
 		gettimeofday(&tv,NULL);
 		timer_task_start = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
+		
 #endif
 		MPIResource::RequestTask(target_chunk,task);
 		task_query=task.query_chunk;
@@ -337,8 +277,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	timer_task_end=timer_align_start;
 	timer_task+=timer_task_end - timer_task_start;
 	
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-	printf("%.0f\t[ms]\trank:%d Start Task\n",timer_second,rank);
+	printf("%.0lf\t[ms]\trank:%d Start Task\n",timevalToMillisec(tv)-timevalToMillisec(init_tv),rank);
 #endif
 
 		if(useGPU){
@@ -362,8 +301,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	
 #ifdef F_TIMER
 		gettimeofday(&tv,NULL);
-		timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-		printf("%.0f\t[ms]\trank:%d Search(%d,%d)\n",timer_second,rank,task_query,task_db);
+		printf("%.0lf\t[ms]\trank:%d Search(%d,%d)\n",timevalToMillisec(tv)-timevalToMillisec(init_tv),rank,task_query,task_db);
 #endif
 	}
 	
@@ -372,14 +310,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	cout<<"rank:"<<rank<<"\tCumulative Task Recv Time : "<<timer_task<<" [ms]"<<endl;
 #endif
 	
-	Aligner aligner_;
-	
-	string out_name = string("out");
-	for(int i=0;i<results_list.size();i++){
-		for(int j=0;j<results_list[i].size();j++){
-			//cout<<results_list[i][j].subject_name<<endl;
-		}
-	}
+
 	//unload resources;
 	MPIResource::UnloadDatabaseResource(resources,target_chunk);
 	/*
@@ -394,8 +325,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	//*/
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-	printf("%.0f\t[ms]\trank:%d Search Phase\n",timer_second,rank);
+	printf("%.0lf\t[ms]\trank:%d Search Phase\n",timevalToMillisec(tv)-timevalToMillisec(init_tv),rank);
 #endif
 	MPI::COMM_WORLD.Barrier();
 	//End Search Phase
@@ -407,8 +337,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	remove(tmp_dirname.c_str());
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
-	timer_second = (tv.tv_sec-init_tv.tv_sec)*1000 + (tv.tv_usec - init_tv.tv_usec)*0.001;
-	printf("%.0f\t[ms]\trank:%d Report Phase\n",timer_second,rank);
+	printf("%.0lf\t[ms]\trank:%d Report Phase\n",timevalToMillisec(tv)-timevalToMillisec(init_tv),rank);
 #endif
 	//finalize
 
@@ -418,9 +347,9 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 
 
 
-void MPICommon::SetupDatabaseResourcesMaster(string &queries_filename,string &database_filename,
-									 MasterResources &resources,AligningParameters &parameter,
-									 MPIParameter &mpi_parameter){
+void MPICommon::SetupDatabaseResourcesMaster(string &database_filename,
+											 MasterResources &resources,AligningParameters &parameter,
+											 MPIParameter &mpi_parameter){
 	struct stat st;
 	//init database resource
 	string inf_file = resources.database_filename+".inf";
@@ -435,14 +364,7 @@ void MPICommon::SetupDatabaseResourcesMaster(string &queries_filename,string &da
 	MPIResource::BcastDatabaseInfo(databaseinfo,MPI::COMM_WORLD,0);
 	resources.database_info=databaseinfo;
 	
-	
-#if 1
 
-	cout<<"database chunk:"<<databaseinfo.number_chunks<<endl;
-	//cout<<"number sequences:"<<number_sequences<<endl;
-	
-
-#endif
 	for(int i=0;i<databaseinfo.number_chunks;i++){
 		DatabaseResource database;
 		database.chunk_id=i;
@@ -450,58 +372,63 @@ void MPICommon::SetupDatabaseResourcesMaster(string &queries_filename,string &da
 		resources.database_list.push_back(database);
 	}
 	
-	
+	//Create Subgroup comm
+	for(int i=0;i<resources.database_list.size();i++){
+		MPI::COMM_WORLD.Split(1,0);
+	}
 
-	//init worker process
-	const char *filename = database_filename.c_str();
-	//cout<<"master:"<<filename<<":size="<<sizeof(filename)<<endl;
-	int size[2];
-	size[0]=resources.database_list.size();
-	size[1]=database_filename.length();
-	MPI::COMM_WORLD.Bcast(size,2,MPI::INT,0);
-	MPI::COMM_WORLD.Bcast((char *)database_filename.c_str(),size[1],MPI::CHAR,0);
-	//deliverer.CreateResponseThread(resources,mpi_parameter.size);
-	//int dbinfo_size[5];
-	//MPI::Bcast(dbinfo_size,5,MPI::INT,0);
-	
-	
 }
-void MPICommon::SetupDatabaseResourcesWorker(WorkerResources &resources,AligningParameters &parameter,MPIParameter &mpi_parameter){
-	int query_chunk_size;
-	int database_chunk_size;
-	char* database_filename;
-	int database_filename_length;
-	int buf[2];
+void MPICommon::SetupDatabaseResourcesWorker(string &database_filename,WorkerResources &resources,
+											 AligningParameters &parameter,MPIParameter &mpi_parameter){
+	
 	DatabaseInfo databaseinfo;
-	
-	
 	MPIResource::BcastDatabaseInfo(databaseinfo,MPI::COMM_WORLD,0);
-		
-	MPI::COMM_WORLD.Bcast(buf,2,MPI::INT,0);
-	
-	database_chunk_size=buf[0];
-	database_filename_length=buf[1];
-	database_filename= new char[database_filename_length];
-	MPI::COMM_WORLD.Bcast(database_filename,database_filename_length,MPI::CHAR,0);
-	resources.database_filename=string(database_filename,database_filename+database_filename_length);
 	resources.database_info=databaseinfo;
-	//cout<<"query,database:"<<query_chunk_size<<","<<database_chunk_size<<endl;
-	//cout<<"databasename:"<<resources.database_filename<<endl;
-	//setup database
+	resources.database_filename=database_filename;;
 	
-	for(int i=0;i<database_chunk_size;i++){
+	//setup database
+	for(int i=0;i<databaseinfo.number_chunks;i++){
 		DatabaseResource database;
 		database.chunk_id=i;
 		database.available=false;
 		resources.database_list.push_back(database);
 	}
 	
+	int db_chunk_size = resources.database_list.size();
+	bool submaster = false;
+	int rank = mpi_parameter.rank;
+	int target_chunk=(rank-1)%db_chunk_size;
+	if(target_chunk==rank-1){
+		submaster =true;
+	}
+	
+	for(int i=0;i<db_chunk_size;i++){
+		if(i==target_chunk){
+			if(submaster){
+				resources.subgroup_comm = MPI::COMM_WORLD.Split(0,0);
+			}else{
+				resources.subgroup_comm = MPI::COMM_WORLD.Split(0,rank);
+			}
+		}else{
+			MPI::COMM_WORLD.Split(1,rank);
+		}
+	}
+	
+	//	cout<<"rank:"<<rank<<"comm created."<<endl;
+	if(submaster){
+		//load db from filesystem
+		MPIResource::LoadDatabaseResource(resources,target_chunk);
+	}
+	//Broadcast db to subgroup
+	uint64_t sum =0;
+	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
+	//cout<<"rank:"<<rank<<"db recved."<<endl;
+	
+
+	
 }
 void MPICommon::SetupQueryResourcesMaster(string &queries_filename,MasterResources &resources,
 										 AligningParameters &parameter,MPIParameter &mpi_parameter){
-
-
-		//init query resource
 	vector<uint64_t> pointer_list;
 	vector<uint64_t> size_list;
 	struct stat st;
@@ -521,16 +448,39 @@ void MPICommon::SetupQueryResourcesMaster(string &queries_filename,MasterResourc
 	}
 	int query_chunk_size=resources.query_list.size();
 	MPI::COMM_WORLD.Bcast(&query_chunk_size,1,MPI::INT,0);
+	for(int i=0;i<query_chunk_number;i++){
+		MPI::COMM_WORLD.Bcast((char*)&pointer_list[i],sizeof(pointer_list[i]),MPI::CHAR,0);
+		MPI::COMM_WORLD.Bcast((char*)&size_list[i],sizeof(size_list[i]),MPI::CHAR,0);
+		
+	}
+		
+	for(int i=0;i<resources.query_list.size();i++){
+		MPIResource::LoadQueryResource(resources,i);
+		
+	}   //loading all query on master memory
+
 	
 }
 
 void MPICommon::SetupQueryResourcesWorker(WorkerResources &resources,AligningParameters &parameter,MPIParameter &mpi_parameter){
 	int query_chunk_size;
 	MPI::COMM_WORLD.Bcast(&query_chunk_size,1,MPI::INT,0);
+	vector<uint64_t> pointer_list;
+	vector<uint64_t> size_list;
+	pointer_list.resize(query_chunk_size);
+	size_list.resize(query_chunk_size);
+	
+	
+	for(int i=0;i<query_chunk_size;i++){
+		MPI::COMM_WORLD.Bcast((char*)&pointer_list[i],sizeof(pointer_list[i]),MPI::CHAR,0);
+		MPI::COMM_WORLD.Bcast((char*)&size_list[i],sizeof(size_list[i]),MPI::CHAR,0);
+	}
 	
 	//setup query
 	for(int i=0;i<query_chunk_size;i++){
 		QueryResource query;
+		query.size=size_list[i];
+		query.ptr=pointer_list[i];
 		query.chunk_id=i;
 		query.available=false;
 		resources.query_list.push_back(query);
