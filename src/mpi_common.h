@@ -98,7 +98,10 @@ private:
 								 std::vector<uint64_t> &chunk_pointer_list,
 								 std::vector<uint64_t> &chunk_size_list,AligningParameters &parameter);
 	
-	
+	void BuildGuidedQueryChunkPointers(std::string &queries_filename,
+									   std::vector<uint64_t> &chunk_pointer_list,
+									   std::vector<uint64_t> &chunk_size_list,AligningParameters &parameter);
+									   
 	
 	double timevalToMillisec(struct timeval t){
 		return (t.tv_sec *1000.0 + t.tv_usec* 0.001);

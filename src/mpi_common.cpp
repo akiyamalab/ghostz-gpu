@@ -26,12 +26,15 @@
 #include <string>
 #include <sstream>
 #include <sys/stat.h>
+#include <limits>
 
 #define F_TIMER
 #ifdef F_TIMER
 #include <sys/time.h>
 
 #endif
+
+#define F_GUIDED
 
 
 using namespace std;
@@ -106,8 +109,7 @@ void MPICommon::RunMaster(string &queries_filename,string &database_filename,
 	
 	
 	SetupQueryResourcesMaster(queries_filename,resources,parameter,mpi_parameter);
-#if 0 
-	
+#if 0
 	for(int i=0;i<resources.query_list.size();i++){
 		cout<<resources.query_list[i].chunk_id;
 		cout<<" ptr:"<<resources.query_list[i].ptr;
@@ -215,8 +217,6 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	}
 	
 	SetupQueryResourcesWorker(resources,parameter,mpi_parameter);
-
-
 
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
@@ -443,7 +443,13 @@ void MPICommon::SetupQueryResourcesMaster(string &queries_filename,MasterResourc
 		cerr<<"Query file does not exist. Abort."<<endl;
 		MPI::COMM_WORLD.Abort(1);
 	}
+
+#ifdef F_GUIDED
+	BuildGuidedQueryChunkPointers(queries_filename,pointer_list,size_list,parameter);
+	parameter.queries_chunk_size = numeric_limits<unsigned int>::max();
+#else
 	BuildQueryChunkPointers(queries_filename,pointer_list,size_list,parameter);
+#endif
 	int query_chunk_number = pointer_list.size();
 	for(int i=0;i<query_chunk_number;i++){
 		QueryResource query_resource;
@@ -476,7 +482,9 @@ void MPICommon::SetupQueryResourcesWorker(WorkerResources &resources,AligningPar
 	vector<uint64_t> size_list;
 	pointer_list.resize(query_chunk_size);
 	size_list.resize(query_chunk_size);
-	
+#ifdef F_GUIDED
+	parameter.queries_chunk_size = numeric_limits<unsigned int>::max();
+#endif	
 	
 	for(int i=0;i<query_chunk_size;i++){
 		MPI::COMM_WORLD.Bcast((char*)&pointer_list[i],sizeof(pointer_list[i]),MPI::CHAR,0);
@@ -532,6 +540,57 @@ void MPICommon::BuildQueryChunkPointers(string &queries_filename,vector<uint64_t
 		delete [] array;
 	}
 }
+
+void MPICommon::BuildGuidedQueryChunkPointers(string &queries_filename, vector<uint64_t> &chunk_pointer_list, 
+											  vector<uint64_t> &chunk_size_list,AligningParameters &parameter){
+	
+	float switch_ptr_ratio  = 0.8;
+	float switch_size_ratio = 0.5;
+	ifstream in(queries_filename.c_str());
+	uint64_t begin_ptr,end_ptr,file_size,current_ptr = 0;
+	int chunk_id = 0;
+	uint64_t chunk_size = parameter.queries_chunk_size;
+	uint64_t switch_chunk_size = chunk_size * switch_size_ratio;
+	uint64_t switch_ptr;
+	
+	in.seekg(0,ios::end);
+	end_ptr= in.tellg();
+	in.clear();
+	in.seekg(0,ios::beg);
+	begin_ptr=in.tellg();
+	file_size=end_ptr - begin_ptr;
+	switch_ptr = file_size * switch_ptr_ratio;
+
+	chunk_pointer_list.push_back(0);
+
+    while(file_size> current_ptr){
+        if(current_ptr>switch_ptr){
+            chunk_size=switch_chunk_size;
+        }
+        in.seekg(current_ptr+chunk_size);
+        while(in){
+            char c;
+            in.get(c);
+            if(c=='>'){break;}
+        }
+        uint64_t p=in.tellg();
+
+        if(in){
+            chunk_pointer_list.push_back(p-1);
+            chunk_id++;
+            chunk_size_list.push_back(chunk_pointer_list[chunk_id]-chunk_pointer_list[chunk_id-1]);
+            current_ptr+=chunk_size;
+        }else{
+            chunk_size_list.push_back(file_size-chunk_pointer_list[chunk_id]);
+            current_ptr+=chunk_size;
+        }
+    }
+
+
+
+}
+
+
 
 
 void MPICommon::AcceptCommand(MasterResources &resources,LoadBalancer &balancer){
