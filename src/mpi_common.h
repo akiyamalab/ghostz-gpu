@@ -17,6 +17,9 @@
 #include <string>
 #include <fstream>
 #include <sys/time.h>
+
+#define F_GUIDED
+
 class MPICommon{
  public:
 	struct MPIParameter{

@@ -34,7 +34,6 @@
 
 #endif
 
-#define F_GUIDED
 
 
 using namespace std;
