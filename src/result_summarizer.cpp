@@ -12,7 +12,6 @@
 #include <sys/stat.h>
 using namespace std;
 
-#define F_RESULT_ON_MEMORY
 
 ResultSummarizer::ResultSummarizer(string &tmp_dirname,string &output_filename)
 	:tmp_dirname_(tmp_dirname),output_filename_(output_filename){
@@ -21,34 +20,17 @@ ResultSummarizer::ResultSummarizer(string &tmp_dirname,string &output_filename)
 
 
 void ResultSummarizer::SaveResultFile(vector<vector<Result> > &results_list,AlignmentTask task){
-
+	ofstream ofs(GetTmpFilename(task).c_str());
 	char *data;
 	int size;
 	SerializeResult(results_list,&data,&size);
-#ifdef F_RESULT_ON_MEMORY
-	AddData(task,size,data);
-#else
-	ofstream ofs(GetTmpFilename(task).c_str());
 	ofs.write(data,size);
 	ofs.close();
 	delete [] data;
 	AddList(task,size);
-#endif
-	
 }
 
 int ResultSummarizer::LoadResultFile(char **ptr, int *size,AlignmentTask task){
-#ifdef F_RESULT_ON_MEMORY
-	int i=0;
-	while(task.query_chunk != task_list[i].query_chunk ||
-		  task.database_chunk != task_list[i].database_chunk ) {
-		i++;
-	}
-
-	*ptr = data_list[i];
-	*size = size_list[i];	
-#else
-	
 	struct stat st;
 	if(stat(GetTmpFilename(task).c_str(),&st)==-1){
 		return 1;
@@ -64,7 +46,7 @@ int ResultSummarizer::LoadResultFile(char **ptr, int *size,AlignmentTask task){
 	*ptr = new char[*size];
 	ifs.read(*ptr,*size);
 	ifs.close();
-#endif
+
 	return 0;
 }
 int ResultSummarizer::LoadResultFile(vector<vector<Result> > &result_list,AlignmentTask task){	
@@ -212,13 +194,8 @@ void ResultSummarizer::RecvResult(vector<vector<Result> > &results_list,Alignmen
 void ResultSummarizer::AddList(AlignmentTask task, int size){
 	task_list.push_back(task);
 	size_list.push_back(size);
-}
 
-void ResultSummarizer::AddData(AlignmentTask task ,int size, char *data){
-	 AddList(task,size);
-	 data_list.push_back(data);
 }
-
 void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chunk_size,
 										  AligningParameters &parameters,DatabaseInfo &database_info){
 	//cout<<"query_size:"<<query_chunk_size<<endl;
@@ -443,7 +420,6 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		
 	}
 	ss<<endl;
-	
 	for(int i=0;i<query_chunk_size;i++){
 		ss<<i<<":";
 		for(int j=0;j<database_chunk_size;j++){
@@ -458,8 +434,8 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		}
 		ss<<endl;
 	}	
-	//	cout<<ss.str();
-
+	cout<<ss.str();
+	
 		
 	//cout<<"rank "<<rank<<" clean up. "<<ptr_list.size()<<endl;
 	for(int i=0;i<ptr_list.size();i++){

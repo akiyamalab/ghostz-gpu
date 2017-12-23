@@ -61,13 +61,11 @@ class ResultSummarizer{
 							AligningParameters &parameters, DatabaseInfo &database_info);
    
 	void AddList(AlignmentTask task,int size);
-
-	void AddData(AlignmentTask task,int size,char *data);
+		
 	void BuildResultTargetMap(int query_chunk_size, int mpi_size);
  private:
 	std::vector<AlignmentTask > task_list; // searched results file on each process
 	std::vector<int> size_list;            // file size of results file on each process
-	std::vector<char *> data_list;         // result data when F_RESULT_ON_MEMORY flag is enabled
 	std::string tmp_dirname_;
 	std::string output_filename_;
 	std::vector<int> result_target_map;   // map of query block to report phase node number
