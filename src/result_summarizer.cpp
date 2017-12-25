@@ -234,9 +234,12 @@ void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chu
 	MPI::COMM_WORLD.Bcast(&result_size_map_vec[0],result_size_map_vec.size(),MPI::INT,0);
  
 	
-	ReduceResult(0,query_chunk_size,database_chunk_size,parameters,database_info);
-
-	
+#ifdef F_USE_BEEGFS
+	ReduceResultViaFS(0,query_chunk_size,database_chunk_size,parameters,database_info);
+#else
+	ResuceResult(0,query_chunk_size,database_chunk_size,parameters,database_info);
+#endif
+   
 }
 void ResultSummarizer::BuildResultTargetMap(int query_chunk_size,int mpi_size){
 	result_target_map.resize(query_chunk_size);
@@ -291,10 +294,11 @@ void ResultSummarizer::GatherResultWorker(int rank,AligningParameters &parameter
 	
 	// finish sync of size list
 	
-	ReduceResult(rank,query_chunk_size,database_chunk_size,parameters,database_info);
-	
-	
- 	 
+#ifdef F_USE_BEEGFS
+	ReduceResultViaFS(rank,query_chunk_size,database_chunk_size,parameters,database_info);
+#else
+	ResuceResult(rank,query_chunk_size,database_chunk_size,parameters,database_info);
+#endif
 		
    	
 	
@@ -445,7 +449,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		
 	}
 	for(int i=0;i<task_list.size();i++){
-		DeleteResultFile(task_list[i]);
+		//DeleteResultFile(task_list[i]);
 	}
 	cout<<"rank: "<<rank<<"wait join"<<endl;
 	threads.join_all();
@@ -512,6 +516,62 @@ void ResultSummarizer::ReduceResultThread(ThreadParameters &thread_parameters){
 	
 	os.close();
 	//results_list.clear();
+}
+
+void ResultSummarizer::ReduceResultViaFS(int rank,int query_chunk_size,int database_chunk_size,
+					   AligningParameters &parameters, DatabaseInfo &database_info){
+
+	//all rank can read result file as /${TMPDIR}/result***
+	//this method should be used with BeeOND GFS or compatible system.
+	vector<vector<char *> > result_data_list;
+	result_data_list.resize(query_chunk_size);
+	boost::thread_group threads;
+	for(int q=0;q<query_chunk_size;q++){
+		result_data_list[q].resize(database_chunk_size);
+		for(int d=0;d<database_chunk_size;d++){
+			result_data_list[q][d]=NULL;
+		}	 
+	}
+	
+	for(int q=0;q<query_chunk_size;q++){
+		if(result_target_map[q]==rank){
+			cout<<"rank: "<<rank<<"  target:"<<q<<endl;
+			
+			for(int d=0;d<database_chunk_size;d++){
+				char *data;
+				int size;
+				AlignmentTask task;
+				task.query_chunk=q;
+				task.database_chunk=d;
+				if(LoadResultFile(&data,&size,task)!=0){
+					cout<<"Error. Cannot open tmpfile."<<endl;
+				}
+				cout<<"rank: "<<rank<<" ("<<q<<","<<d<<") load."<<endl;
+				result_data_list[q][d]=data;
+			}
+			ThreadParameters p;
+			p.query_chunk=q;
+			p.result_data_list=result_data_list[q];
+			p.result_size_list=result_size_map[q];
+			p.parameters=parameters;
+			p.database_info=database_info;
+			threads.create_thread(boost::bind(&ResultSummarizer::ReduceResultThread,this,p));
+		}
+	}
+
+	for(int q=0;q<query_chunk_size;q++){
+		if(result_target_map[q]==rank){
+			for(int d=0;d<database_chunk_size;d++){
+				AlignmentTask task;
+				task.query_chunk=q;
+				task.database_chunk=d;
+				DeleteResultFile(task);
+			}
+		}
+	}
+	
+	threads.join_all();
+	
 }
 
 void ResultSummarizer::WriteOutput(std::ostream &os,

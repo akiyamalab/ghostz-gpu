@@ -70,6 +70,11 @@ int mpi_main(int argc,char* argv[]){
 		//this app require MPI_THREAD_SERIALIZED
 		cout<<"rank"<<rank<<":"<<ret<<":"<<MPI_THREAD_SERIALIZED<<endl;
 #endif
+#ifdef F_USE_BEEGFS
+		if(rank==0){
+			cout<<"Use Bee GFS(/beeond)"<<endl;
+		}
+#endif
 		int size= MPI::COMM_WORLD.Get_size();
 		MPICommon::MPIParameter mpi_parameter;
 		mpi_parameter.rank=rank;

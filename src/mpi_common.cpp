@@ -340,7 +340,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	summary.GatherResultWorker(rank,parameter,resources.database_info);
 	//End Report Phase
 
-	remove(tmp_dirname.c_str());
+	//remove(tmp_dirname.c_str());
 #ifdef F_TIMER
 	gettimeofday(&tv,NULL);
 	printf("%.0lf\t[ms]\trank:%d Report Phase\n",timevalToMillisec(tv)-timevalToMillisec(init_tv),rank);

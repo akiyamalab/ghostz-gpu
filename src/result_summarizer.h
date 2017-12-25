@@ -79,6 +79,9 @@ class ResultSummarizer{
 								  std::vector<char*> result_data_list,
 								  std::vector<MPI::Request> result_data_req_list);
 	void ReduceResultThread(ThreadParameters &thread_parameters);
+
+	void ReduceResultViaFS(int rank,int query_chunk_size,int database_chunk_size,
+						   AligningParameters &parameters, DatabaseInfo &database_info);
 	
 	void WriteOutput(std::ostream &os,std::string &query_name,
 					 uint32_t query_length,
