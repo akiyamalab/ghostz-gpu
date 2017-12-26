@@ -58,6 +58,7 @@ CUDALIBS= -L$(CUDA_TOOLKIT_PATH)/lib64 -lcudart
 BOOSTLIBS = -L$(BOOST_PATH)/lib -lm -lboost_thread -lboost_system
 EXECUTABLE = 
 ifeq ($(USE_GPU),Yes)
+        INCLUDES += -I$(CUDA_TOOLKIT_PATH)/include
 #	CFLAGS   += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE)
 #	CXXFLAGS += -DGPU -gencode arch=$(GPU_ARCH),code=$(GPU_CODE) 
 	CFLAGS   += -DGPU
@@ -73,9 +74,9 @@ ifeq ($(USE_MPI),Yes)
 	INCLUDES += -I$(MPI_PATH)/include
 	LDLIBS    += -L$(MPI_PATH)/lib
 	LDFLAGS  += -lmpi
-	CFLAGS 	 += -DF_MPI
-	CXXFLAGS += -DF_MPI
-	NVCCFLAGS += -DF_MPI
+	CFLAGS 	 += -DF_MPI -DF_USE_BEEGFS
+	CXXFLAGS += -DF_MPI -DF_USE_BEEGFS
+	NVCCFLAGS += -DF_MPI  -DF_USE_BEEGFS
 #	CC=$(MPICXX)
 #	CXX=$(MPICXX)
 	EXECUTABLE=ghostz-gpu-mpi

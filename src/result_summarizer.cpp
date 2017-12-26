@@ -22,7 +22,7 @@ ResultSummarizer::ResultSummarizer(string &tmp_dirname,string &output_filename)
 void ResultSummarizer::SaveResultFile(vector<vector<Result> > &results_list,AlignmentTask task){
 	ofstream ofs(GetTmpFilename(task).c_str());
 	char *data;
-	int size;
+	uint64_t size;
 	SerializeResult(results_list,&data,&size);
 	ofs.write(data,size);
 	ofs.close();
@@ -30,13 +30,13 @@ void ResultSummarizer::SaveResultFile(vector<vector<Result> > &results_list,Alig
 	AddList(task,size);
 }
 
-int ResultSummarizer::LoadResultFile(char **ptr, int *size,AlignmentTask task){
+int ResultSummarizer::LoadResultFile(char **ptr, uint64_t *size,AlignmentTask task){
 	struct stat st;
 	if(stat(GetTmpFilename(task).c_str(),&st)==-1){
 		return 1;
 	}
 	ifstream ifs(GetTmpFilename(task).c_str());
-	int begin,end;
+	uint64_t begin,end;
 	ifs.seekg(0,ios::end);
 	end = ifs.tellg();
 	ifs.clear();
@@ -51,7 +51,7 @@ int ResultSummarizer::LoadResultFile(char **ptr, int *size,AlignmentTask task){
 }
 int ResultSummarizer::LoadResultFile(vector<vector<Result> > &result_list,AlignmentTask task){	
 	char *data;
-	int size;
+	uint64_t size;
 	
 	if(LoadResultFile(&data,&size,task)!=0){
 		return 1;
@@ -66,7 +66,7 @@ void ResultSummarizer::DeleteResultFile(AlignmentTask task){
 	
 }
 
-void ResultSummarizer::SerializeResult(vector<vector<Result> > &results_list,char **ptr,int *size){
+void ResultSummarizer::SerializeResult(vector<vector<Result> > &results_list,char **ptr,uint64_t *size){
     stringstream ss;
 
     int n_results = results_list.size();
@@ -116,7 +116,7 @@ void ResultSummarizer::SerializeResult(vector<vector<Result> > &results_list,cha
 
 
 
-void ResultSummarizer::DeserializeResult(vector<vector<Result> > &results_list,char *ptr,int size){
+void ResultSummarizer::DeserializeResult(vector<vector<Result> > &results_list,char *ptr,uint64_t size){
     stringstream ss;
     ss.write(ptr,size);
     int n_results;
@@ -164,7 +164,7 @@ void ResultSummarizer::DeserializeResult(vector<vector<Result> > &results_list,c
 }
 
 
-void ResultSummarizer::SendResult(char *data,int size,AlignmentTask task,int target_rank){
+void ResultSummarizer::SendResult(char *data,uint64_t size,AlignmentTask task,int target_rank){
 	int buf[3];
 	buf[0]=size;
 	buf[1]=task.database_chunk;
@@ -191,18 +191,18 @@ void ResultSummarizer::RecvResult(vector<vector<Result> > &results_list,Alignmen
 
 }
 
-void ResultSummarizer::AddList(AlignmentTask task, int size){
+void ResultSummarizer::AddList(AlignmentTask task, uint64_t size){
 	task_list.push_back(task);
 	size_list.push_back(size);
 
 }
 void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chunk_size,
 										  AligningParameters &parameters,DatabaseInfo &database_info){
-	//cout<<"query_size:"<<query_chunk_size<<endl;
+	cout<<"query_size:"<<query_chunk_size<<endl;
 	BuildResultTargetMap(query_chunk_size,MPI::COMM_WORLD.Get_size());
 	int map_size = result_target_map.size();
 	
-		result_size_map.resize(query_chunk_size);
+	result_size_map.resize(query_chunk_size);
 		
 	for(int i=0;i<result_size_map.size();i++){
 		result_size_map[i].resize(database_chunk_size);
@@ -210,12 +210,19 @@ void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chu
 	
 	for(int i=0;i<query_chunk_size * database_chunk_size;i++){
 		//MPI::Status status;
-		int buf[3];
-		MPI::COMM_WORLD.Recv(buf,3,MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG);
+		cout<<"recv"<<i<<endl;
+		int buf[2+2];
+		MPI::COMM_WORLD.Recv(buf,2+2,MPI::INT,MPI::ANY_SOURCE,MPI::ANY_TAG);
 		//int src_rank = status.Get_source();
 		int query_chunk = buf[0];
 		int db_chunk=buf[1];
-		int result_size = buf[2];
+		cout<<"("<<query_chunk<<","<<db_chunk<<")"<<endl;
+		uint64_t result_size;
+		for(int j=0;j<sizeof(uint64_t)/sizeof(int);j++){
+			((int*)&result_size)[j]=buf[2+j];
+		}
+		cout<<result_size<<endl;
+		
 		result_size_map[query_chunk][db_chunk]=result_size;
 		
 	}
@@ -223,7 +230,7 @@ void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chu
 	MPI::COMM_WORLD.Bcast(&map_size,1,MPI::INT,0);
 	MPI::COMM_WORLD.Bcast(&(result_target_map[0]),map_size,MPI::INT,0);
 	
-	vector<int> result_size_map_vec;
+	vector<uint64_t> result_size_map_vec;
 	for(int q=0;q<query_chunk_size;q++){
 		for(int d=0;d<database_chunk_size;d++){
 			result_size_map_vec.push_back(result_size_map[q][d]);
@@ -231,7 +238,7 @@ void ResultSummarizer::GatherResultMaster(int query_chunk_size, int database_chu
 	}
 	int result_size_map_vec_length = result_size_map_vec.size();
 	MPI::COMM_WORLD.Bcast(&result_size_map_vec_length,1,MPI::INT,0);
-	MPI::COMM_WORLD.Bcast(&result_size_map_vec[0],result_size_map_vec.size(),MPI::INT,0);
+	MPI::COMM_WORLD.Bcast(&result_size_map_vec[0],result_size_map_vec.size()*(sizeof(uint64_t)/sizeof(int)),MPI::INT,0);
  
 	
 #ifdef F_USE_BEEGFS
@@ -254,12 +261,14 @@ void ResultSummarizer::GatherResultWorker(int rank,AligningParameters &parameter
 	stringstream ss;
    	ss<<"rank"<<rank;
 	for(int i=0;i<task_list.size();i++){
-		int buf[3];
+		int buf[2+sizeof(uint64_t)/sizeof(int)];
 		buf[0]=task_list[i].query_chunk;
 		buf[1]=task_list[i].database_chunk;
-		buf[2]=size_list[i];
-		MPI::COMM_WORLD.Send(buf,3,MPI::INT,0,0);
-		ss<<"("<<buf[0]<<","<<buf[1]<<","<<buf[2]<<") ";		
+		for(int j=0;j<sizeof(uint64_t)/sizeof(int);j++){
+			buf[2+j]=((int*)&(size_list[i]))[j];
+		}
+		MPI::COMM_WORLD.Send(buf,2+sizeof(uint64_t)/sizeof(int),MPI::INT,0,0);
+		ss<<"("<<buf[0]<<","<<buf[1]<<","<<size_list[i]<<") ";		
 	}
 	//cout<<ss.str()<<endl;
 
@@ -275,10 +284,10 @@ void ResultSummarizer::GatherResultWorker(int rank,AligningParameters &parameter
 	
 	int result_size_map_vec_length;
 	MPI::COMM_WORLD.Bcast(&result_size_map_vec_length,1,MPI::INT,0);
-	vector<int> result_size_map_vec;
+	vector<uint64_t> result_size_map_vec;
 	result_size_map_vec.resize(result_size_map_vec_length);
 	
-	MPI::COMM_WORLD.Bcast(&(result_size_map_vec[0]),result_size_map_vec_length,MPI::INT,0);
+	MPI::COMM_WORLD.Bcast(&(result_size_map_vec[0]),result_size_map_vec_length*(sizeof(uint64_t)/sizeof(int)),MPI::INT,0);
 	int database_chunk_size = result_size_map_vec_length / query_chunk_size;
 	//	cout<<"db_size:"<<database_chunk_size<<endl;
 
@@ -339,7 +348,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 	for(int i=0;i<task_list.size();i++){
 		int q_chunk = task_list[i].query_chunk;
 		int db_chunk = task_list[i].database_chunk;
-		int size ;
+		uint64_t size ;
 		char *data ;
 		if(LoadResultFile(&data,&size,task_list[i])!=0){
 			cout<<"Error. Cannnot open tempfile."<<endl;
@@ -371,7 +380,7 @@ void ResultSummarizer::ReduceResult(int rank,int query_chunk_size,int database_c
 		for(int db_chunk=0;db_chunk<database_chunk_size;db_chunk++){
 			int q_chunk = my_target[i];
 			if(result_data_list[q_chunk][db_chunk]==NULL){
-				int size  = result_size_map[q_chunk][db_chunk];
+				uint64_t size  = result_size_map[q_chunk][db_chunk];
 				char *data = new char[size];
 				int tag = q_chunk * database_chunk_size + db_chunk;
 				result_data_list[q_chunk][db_chunk]=data;
@@ -462,7 +471,7 @@ void ResultSummarizer::ReduceResultThread(ThreadParameters &thread_parameters){
 	uint64_t database_number_sequences = thread_parameters.database_info.number_sequences;
 	int query_chunk = thread_parameters.query_chunk;
 	vector<char *> result_data_list  = thread_parameters.result_data_list;
-	vector<int > result_size_list = thread_parameters.result_size_list;
+	vector<uint64_t > result_size_list = thread_parameters.result_size_list;
 	unsigned int max_result = thread_parameters.parameters.max_number_results;
 	stringstream ss;
 	ss<<output_filename_<<"_"<<query_chunk;
@@ -494,7 +503,8 @@ void ResultSummarizer::ReduceResultThread(ThreadParameters &thread_parameters){
 	for(int i=0;i<results_list.size();i++){
 		//		cout<<"thread : "<<query_chunk<<" "<<i<<"/"<<results_list.size()<<"/"<<results_list[i].size()<<"sort"<<endl; 
 		stable_sort(results_list[i].begin(),results_list[i].end(),
-					AlignerCommon::ResultGreaterScore());
+				
+	AlignerCommon::ResultGreaterScore());
 		//cout<<"thread : "<<query_chunk<<","<<i<<" start."<<endl; 
 
 		//cout<<"thread : "<<query_chunk<<" "<<i<<"/"<<results_list.size()<<"/"<<results_list[i].size()<<"write"<<endl; 
@@ -539,14 +549,14 @@ void ResultSummarizer::ReduceResultViaFS(int rank,int query_chunk_size,int datab
 			
 			for(int d=0;d<database_chunk_size;d++){
 				char *data;
-				int size;
+				uint64_t size;
 				AlignmentTask task;
 				task.query_chunk=q;
 				task.database_chunk=d;
 				if(LoadResultFile(&data,&size,task)!=0){
 					cout<<"Error. Cannot open tmpfile."<<endl;
 				}
-				cout<<"rank: "<<rank<<" ("<<q<<","<<d<<") load."<<endl;
+				cout<<"rank: "<<rank<<" ("<<q<<","<<d<<") size="<<size<<"("<<size/(1024*1024)<<"MB) load."<<endl;
 				result_data_list[q][d]=data;
 			}
 			ThreadParameters p;
