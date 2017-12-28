@@ -85,7 +85,7 @@ private:
 							  MasterResources &resources, AligningParameters &parameter,
 							  MPIParameter &mpi_parameter);
 	
-	void SetupDatabaseResourcesWorker(std::string &database_filename,WorkerResources &resources,
+	void SetupDatabaseResourcesWorker(std::string &database_filename,std::string &tmp_dirname,WorkerResources &resources,
 									  AligningParameters &parameter,MPIParameter &mpi_parameter);
 
 	void SetupQueryResourcesMaster(std::string &queries_filename,MasterResources &resources,

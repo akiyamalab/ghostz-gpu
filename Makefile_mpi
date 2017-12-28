@@ -52,10 +52,10 @@ CXXFLAGS=
 NVCCFLAGS= 
 
 LDLIBS = -L$(BOOST_PATH)/lib
-LDFLAGS =  -lm -lboost_thread -lboost_system --cudart static 
+LDFLAGS =  -lm -lboost_thread -lboost_system -lboost_filesystem --cudart static 
 
 CUDALIBS= -L$(CUDA_TOOLKIT_PATH)/lib64 -lcudart
-BOOSTLIBS = -L$(BOOST_PATH)/lib -lm -lboost_thread -lboost_system
+BOOSTLIBS = -L$(BOOST_PATH)/lib -lm -lboost_thread -lboost_system -lboost_filesystem
 EXECUTABLE = 
 ifeq ($(USE_GPU),Yes)
         INCLUDES += -I$(CUDA_TOOLKIT_PATH)/include

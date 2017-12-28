@@ -28,6 +28,10 @@
 #include <sys/stat.h>
 #include <limits>
 
+
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
 #define F_TIMER
 #ifdef F_TIMER
 #include <sys/time.h>
@@ -198,7 +202,7 @@ void MPICommon::RunWorker(string &queries_filename,string &database_filename,
 	//***********************//
 	//Start Init Phase
 	
-	SetupDatabaseResourcesWorker(database_filename,resources,parameter,mpi_parameter);
+	SetupDatabaseResourcesWorker(database_filename,tmp_dirname,resources,parameter,mpi_parameter);
 
 	//Create subgroup comm
 	
@@ -384,7 +388,7 @@ void MPICommon::SetupDatabaseResourcesMaster(string &database_filename,
 	}
 
 }
-void MPICommon::SetupDatabaseResourcesWorker(string &database_filename,WorkerResources &resources,
+void MPICommon::SetupDatabaseResourcesWorker(string &database_filename,string &tmp_dirname,WorkerResources &resources,
 											 AligningParameters &parameter,MPIParameter &mpi_parameter){
 	
 	DatabaseInfo databaseinfo;
@@ -419,7 +423,42 @@ void MPICommon::SetupDatabaseResourcesWorker(string &database_filename,WorkerRes
 			MPI::COMM_WORLD.Split(1,rank);
 		}
 	}
+#ifdef F_USE_BEEGFS
+	//load db from fs 
+	int worker_size=mpi_parameter.size -1 ;
 	
+	string database_filename_basename = database_filename.substr(database_filename.find_last_of('/') + 1);
+	string beegfs_database_filename=tmp_dirname+"/"+database_filename_basename;
+	string db_list[6]= {".inf",".nam",".off",".scp",".seq",".sdp"}; 
+	for(int i=0;i<db_chunk_size;i++){
+		int target_rank = i % worker_size + 1;
+		if(target_rank==rank){
+			//copy
+			stringstream ss;
+			for(int j=0;j<6;j++){
+				ss.str("");
+				ss<<database_filename<<"_"<<i<<db_list[j];
+				const boost::filesystem::path  src_path = ss.str();
+				ss.str("");
+				ss<<beegfs_database_filename<<"_"<<i<<db_list[j];
+				const boost::filesystem::path  dst_path = ss.str();
+				boost::filesystem::copy_file(src_path, dst_path);
+				
+			}
+			ss.str("");
+			ss<<"echo cp -v "<<database_filename<<"_"<<i<<".* "<<tmp_dirname<<"/";
+			cout<<"rank: "<<rank<<" "<<ss.str()<<" ::"<<beegfs_database_filename<<endl;
+			//			int ret=system("echo o");
+			//cout<<"ret:"<<ret<<endl;
+		}
+	}
+	//change database path   
+	database_filename=beegfs_database_filename;
+	resources.database_filename=beegfs_database_filename;
+	//load Database Resource
+	MPIResource::LoadDatabaseResource(resources,target_chunk);
+	//	MPI::COMM_WORLD.Abort(12);
+#else
 	//	cout<<"rank:"<<rank<<"comm created."<<endl;
 	if(submaster){
 		//load db from filesystem
@@ -430,7 +469,7 @@ void MPICommon::SetupDatabaseResourcesWorker(string &database_filename,WorkerRes
 	MPIResource::BcastDatabase(resources.database_list[target_chunk],resources.subgroup_comm,0);
 	//cout<<"rank:"<<rank<<"db recved."<<endl;
 	
-
+#endif
 	
 }
 void MPICommon::SetupQueryResourcesMaster(string &queries_filename,MasterResources &resources,
