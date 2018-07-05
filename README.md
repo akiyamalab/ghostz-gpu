@@ -114,8 +114,7 @@ Each column shows;
 
 References
 ----------
-Shuji Suzuki, Masanori Kakuta, Takashi Ishida, Yutaka Akiyama. Acceleration of sequence homology searches by means of graphics processing units (GPUs) and database subsequence clustering. (submitted)
-
+Shuji Suzuki, Masanori Kakuta, Takashi Ishida, Yutaka Akiyama. "GPU-Acceleration of Sequence Homology Searches with Database Subsequence Clustering", PLOS ONE 11(8): e0157338. https://doi.org/10.1371/journal.pone.0157338, 2016.
 
 Copyright © 2015 Akiyama_Laboratory, Tokyo Institute of Technology, All Rights Reserved.  
 
